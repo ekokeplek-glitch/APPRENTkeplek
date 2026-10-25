@@ -152,7 +152,7 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
   }
 
   return (
-    <nav className="bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 px-1 py-1 sm:py-1.5 flex items-center justify-around select-none z-20 shrink-0 overflow-x-auto">
+    <nav className="sticky bottom-0 z-50 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 px-1 py-1 sm:py-1.5 pb-[env(safe-area-inset-bottom,0.5rem)] flex items-center justify-around select-none shrink-0 overflow-x-auto shadow-lg shadow-black/60">
       {tabs.map(tab => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -160,7 +160,7 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
           <button
             key={tab.id}
             onClick={() => onSelectTab(tab.id)}
-            className={`flex-1 min-w-[56px] py-1.5 px-1 flex flex-col items-center justify-center relative transition-all duration-150 rounded-xl ${
+            className={`flex-1 min-w-[56px] min-h-[48px] py-1.5 px-1 flex flex-col items-center justify-center relative transition-all duration-150 rounded-xl cursor-pointer ${
               isActive
                 ? 'text-cyan-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'

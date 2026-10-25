@@ -19,6 +19,7 @@ import {
 import { AndroidStatusBar } from './components/AndroidStatusBar';
 import { AndroidTopBar } from './components/AndroidTopBar';
 import { AndroidBottomNav, ActiveNavTab } from './components/AndroidBottomNav';
+import { checkTransition, nextId } from './services/bookingEngine';
 import { DashboardView } from './components/DashboardView';
 import { BookingsView } from './components/BookingsView';
 import { TrackingView } from './components/TrackingView';
@@ -112,14 +113,28 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Sync state helper
+  // Sync state helper with QuotaExceeded error propagation (F-12)
   const updateDatabaseState = useCallback((newDb: RyokoDatabase, actionName?: string, detail?: string) => {
+    let dbToPersist = newDb;
     if (actionName && detail) {
-      appendAuditLog(newDb, actionName, detail);
-    } else {
-      saveDatabase(newDb);
+      dbToPersist = appendAuditLog(newDb, actionName, detail);
     }
-    setDb({ ...newDb });
+    const saveRes = saveDatabase(dbToPersist);
+    if (!saveRes.ok) {
+      alert(`Peringatan Kuota Penyimpanan: ${saveRes.message}`);
+    }
+    setDb({ ...dbToPersist });
+  }, []);
+
+  // Multi-tab cross synchronization listener (F-12)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'ryokourent_db_v1') {
+        setDb(loadDatabase());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   // Helper to open Booking Detail Modal / Quick Share
@@ -230,6 +245,15 @@ export const App: React.FC = () => {
 
   // 2. Approve Booking & Lock Unit (D-04)
   const handleConfirmApprove = (bookingId: number, unitId: number) => {
+    const targetBooking = db.bookings.find(b => b.id === bookingId);
+    if (!targetBooking) return;
+
+    const transitionError = checkTransition(targetBooking, 'ryokou_approved', db, unitId);
+    if (transitionError) {
+      alert(`Peringatan Guard: ${transitionError}`);
+      return;
+    }
+
     const unit = db.units.find(u => u.id === unitId);
     if (!unit) return;
 
@@ -256,8 +280,6 @@ export const App: React.FC = () => {
       return b;
     });
 
-    const targetBooking = db.bookings.find(b => b.id === bookingId);
-
     const newDb: RyokoDatabase = {
       ...db,
       bookings: updatedBookings,
@@ -272,6 +294,15 @@ export const App: React.FC = () => {
 
   // 3. Handover Unit / Serah Terima (Mulai Sewa D-04)
   const handleConfirmHandover = (bookingId: number) => {
+    const targetBooking = db.bookings.find(b => b.id === bookingId);
+    if (!targetBooking) return;
+
+    const transitionError = checkTransition(targetBooking, 'ryokou_disewa', db);
+    if (transitionError) {
+      alert(`Peringatan Guard: ${transitionError}`);
+      return;
+    }
+
     const nowStr =
       new Date().toLocaleDateString('id-ID', {
         day: '2-digit',
@@ -281,9 +312,6 @@ export const App: React.FC = () => {
       ' ' +
       new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
       ' WIB';
-
-    const targetBooking = db.bookings.find(b => b.id === bookingId);
-    if (!targetBooking) return;
 
     const updatedBookings = db.bookings.map(b => {
       if (b.id === bookingId) {
@@ -331,6 +359,14 @@ export const App: React.FC = () => {
     const targetBooking = db.bookings.find(b => b.id === bookingId);
     const newUnit = db.units.find(u => u.id === newUnitId);
     if (!targetBooking || !newUnit) return;
+
+    const heldByOther = db.bookings.some(
+      o => o.id !== targetBooking.id && o.unitId === newUnitId && o.status === 'ryokou_disewa'
+    );
+    if (heldByOther) {
+      alert('Gagal Tukar Unit: Unit fisik baru saat ini sedang aktif disewa pelanggan lain.');
+      return;
+    }
 
     const nowStr =
       new Date().toLocaleDateString('id-ID', {
@@ -419,6 +455,12 @@ export const App: React.FC = () => {
     const targetBooking = db.bookings.find(b => b.id === bookingId);
     if (!targetBooking) return;
 
+    const transitionError = checkTransition(targetBooking, 'ryokou_selesai', db);
+    if (transitionError) {
+      alert(`Peringatan Guard: ${transitionError}`);
+      return;
+    }
+
     const nowEpoch = Math.floor(Date.now() / 1000);
     const nowStr =
       new Date().toLocaleDateString('id-ID', {
@@ -474,6 +516,127 @@ export const App: React.FC = () => {
       newDb,
       'Selesai Sewa & Pengembalian',
       `Booking #${targetBooking.noBooking} selesai. Unit ${targetBooking.snapshotKodeUnit} masuk ke ${returnPool === 'batu' ? 'Pool Batu' : 'Pool Malang'}. Denda: Rp ${denda.nominal.toLocaleString('id-ID')}`
+    );
+  };
+
+  // 5b. Alihkan Unit Disewa ke Servis (F-08)
+  const handleSendToService = (bookingId: number, reason?: string) => {
+    const targetBooking = db.bookings.find(b => b.id === bookingId);
+    if (!targetBooking) return;
+    const transitionError = checkTransition(targetBooking, 'ryokou_diservis', db);
+    if (transitionError) {
+      alert(`Gagal Alihkan ke Servis: ${transitionError}`);
+      return;
+    }
+
+    const nowStr =
+      new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }) +
+      ' ' +
+      new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+      ' WIB';
+
+    const updatedBookings = db.bookings.map(b => {
+      if (b.id === bookingId) {
+        return {
+          ...b,
+          status: 'ryokou_diservis' as const,
+          catatanKhusus: b.catatanKhusus
+            ? `${b.catatanKhusus} | [Servis: ${reason || 'Perawatan teknis'}]`
+            : `[Servis: ${reason || 'Perawatan teknis'}]`,
+        };
+      }
+      return b;
+    });
+
+    const updatedTracking = db.tracking.map(t => {
+      if (t.unitId === targetBooking.unitId) {
+        return {
+          ...t,
+          statusPosisi: 'servis' as const,
+          catatan: `Unit dialihkan ke servis darurat (${reason || 'Kendala sewa'})`,
+          updatedAt: nowStr,
+          updatedBy: db.settings.operatorName || 'Operator Ryoko',
+        };
+      }
+      return t;
+    });
+
+    const newDb: RyokoDatabase = {
+      ...db,
+      bookings: updatedBookings,
+      tracking: updatedTracking,
+    };
+
+    updateDatabaseState(
+      newDb,
+      'Unit Masuk Servis Darurat',
+      `Booking #${targetBooking.noBooking} (Unit ${targetBooking.snapshotKodeUnit}) masuk status Diservis (${reason || 'Perawatan teknis'})`
+    );
+  };
+
+  // 5c. Pulihkan dari Servis Darurat kembali ke Sewa atau Selesai (F-08)
+  const handleReturnFromService = (bookingId: number, targetStatus: 'ryokou_disewa' | 'ryokou_selesai') => {
+    const targetBooking = db.bookings.find(b => b.id === bookingId);
+    if (!targetBooking) return;
+    const transitionError = checkTransition(targetBooking, targetStatus, db);
+    if (transitionError) {
+      alert(`Gagal Memulihkan dari Servis: ${transitionError}`);
+      return;
+    }
+
+    const nowEpoch = Math.floor(Date.now() / 1000);
+    const nowStr =
+      new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }) +
+      ' ' +
+      new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+      ' WIB';
+
+    const updatedBookings = db.bookings.map(b => {
+      if (b.id === bookingId) {
+        return {
+          ...b,
+          status: targetStatus,
+          ...(targetStatus === 'ryokou_selesai' ? { selesaiAt: nowStr, actualReturnEpoch: nowEpoch } : {}),
+        };
+      }
+      return b;
+    });
+
+    const updatedTracking = db.tracking.map(t => {
+      if (t.unitId === targetBooking.unitId) {
+        return {
+          ...t,
+          statusPosisi: targetStatus === 'ryokou_disewa' ? ('disewa' as const) : ('parkir' as const),
+          ...(targetStatus === 'ryokou_selesai'
+            ? { bookingId: undefined, noBooking: undefined, namaPenyewa: undefined, tenggatKembali: undefined }
+            : {}),
+          updatedAt: nowStr,
+          updatedBy: db.settings.operatorName || 'Operator Ryoko',
+        };
+      }
+      return t;
+    });
+
+    const newDb: RyokoDatabase = {
+      ...db,
+      bookings: updatedBookings,
+      tracking: updatedTracking,
+    };
+
+    updateDatabaseState(
+      newDb,
+      'Pengembalian dari Servis',
+      `Booking #${targetBooking.noBooking} kembali ke status ${
+        targetStatus === 'ryokou_disewa' ? 'Sedang Disewa' : 'Selesai Sewa'
+      }`
     );
   };
 
@@ -573,9 +736,18 @@ export const App: React.FC = () => {
 
   // 7.5 Catat Servis Rutin (7 Kategori BR-08)
   const handleAddServiceRecord = (record: Omit<ServiceRecord, 'id' | 'createdAt'>) => {
+    const maxSrvNum = (db.serviceRecords || []).reduce((max, s) => {
+      const match = s.id?.match(/SRV-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        return num > max ? num : max;
+      }
+      return max;
+    }, 0);
+
     const newRecord: ServiceRecord = {
       ...record,
-      id: `SRV-${String((db.serviceRecords?.length || 0) + 1).padStart(3, '0')}`,
+      id: `SRV-${String(maxSrvNum + 1).padStart(3, '0')}`,
       createdAt: new Date().toISOString(),
     };
     const updatedServiceRecords = [newRecord, ...(db.serviceRecords || [])];
@@ -590,14 +762,17 @@ export const App: React.FC = () => {
       new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
       ' WIB';
 
-    // Perbarui catatan di tabel pelacakan armada fisik
+    // Perbarui catatan di tabel pelacakan armada fisik (F-11 guard: jika disewa, jangan tiban posisi)
     const updatedTracking = db.tracking.map(t => {
       if (t.unitId === record.unitId) {
+        const isRented = t.statusPosisi === 'disewa';
         return {
           ...t,
-          statusPosisi: 'servis' as const,
+          statusPosisi: isRented ? ('disewa' as const) : ('servis' as const),
           namaBengkel: record.bengkelMekanik,
-          catatan: `Servis [${record.kategoriServis}]: ${record.keterangan}`,
+          catatan: isRented
+            ? `${t.catatan || ''} | Servis [${record.kategoriServis}]: ${record.keterangan}`.trim()
+            : `Servis [${record.kategoriServis}]: ${record.keterangan}`,
           updatedAt: nowStr,
           updatedBy: db.settings.operatorName || 'Operator Ryoko',
         };
@@ -631,7 +806,7 @@ export const App: React.FC = () => {
 
   // 8. Add Physical Unit to Garage
   const handleAddPhysicalUnit = (unitData: Omit<PhysicalUnit, 'id'>) => {
-    const newId = 100 + db.units.length + 1;
+    const newId = Math.max(101, nextId(db.units));
     const newUnit: PhysicalUnit = {
       ...unitData,
       id: newId,
@@ -874,10 +1049,10 @@ export const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-text antialiased">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col font-sans select-text antialiased">
       {/* Container wrapper: Switch between Simulated Mobile APK Viewport vs Full Screen */}
       <div
-        className={`mx-auto w-full transition-all duration-200 flex flex-col min-h-screen ${
+        className={`mx-auto w-full transition-all duration-200 flex flex-col min-h-[100dvh] ${
           isMobileDeviceView
             ? 'max-w-md my-0 sm:my-4 border-0 sm:border sm:border-slate-800/90 sm:rounded-3xl sm:shadow-2xl sm:shadow-cyan-950/50 overflow-hidden'
             : 'max-w-7xl'
@@ -943,6 +1118,8 @@ export const App: React.FC = () => {
               onCancelBooking={handleCancelBooking}
               onOpenReceiptModal={b => setSelectedReceiptBooking(b)}
               onOpenDetailModal={handleOpenDetailModal}
+              onSendToService={handleSendToService}
+              onReturnFromService={handleReturnFromService}
             />
           )}
 

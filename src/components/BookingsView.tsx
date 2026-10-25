@@ -31,6 +31,7 @@ import {
   Receipt,
   Share2,
   Info,
+  Wrench,
 } from 'lucide-react';
 import { QuickShareTab } from './BookingDetailModal';
 
@@ -44,6 +45,8 @@ interface BookingsViewProps {
   onCancelBooking: (bookingId: number) => void;
   onOpenReceiptModal?: (booking: BookingRecord) => void;
   onOpenDetailModal?: (booking: BookingRecord, initialTab?: 'detail' | 'quick_share', initialShareTab?: QuickShareTab) => void;
+  onSendToService?: (bookingId: number, reason?: string) => void;
+  onReturnFromService?: (bookingId: number, target: 'ryokou_disewa' | 'ryokou_selesai') => void;
 }
 
 export const BookingsView: React.FC<BookingsViewProps> = ({
@@ -56,6 +59,8 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
   onCancelBooking,
   onOpenReceiptModal,
   onOpenDetailModal,
+  onSendToService,
+  onReturnFromService,
 }) => {
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -523,9 +528,22 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
                       </button>
                     )}
 
-                    {/* STATUS 3: SEDANG DISEWA -> Tukar Unit (D-19) ATAU Selesai (D-27) */}
+                    {/* STATUS 3: SEDANG DISEWA -> Tukar Unit (D-19), Masuk Servis (F-08), ATAU Selesai (D-27) */}
                     {b.status === 'ryokou_disewa' && (
                       <>
+                        <button
+                          onClick={() => {
+                            const reason = prompt('Alasan unit dialihkan ke servis (mis. ban bocor/kelistrikan):', 'Perawatan mekanis darurat');
+                            if (reason !== null && onSendToService) {
+                              onSendToService(b.id, reason);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-orange-950/80 hover:bg-orange-900 border border-orange-700/60 text-orange-300 text-xs font-semibold flex items-center gap-1 transition"
+                          title="Alihkan unit ke status Servis (F-08)"
+                        >
+                          <Wrench className="w-3.5 h-3.5 text-orange-400" />
+                          <span>Diservis</span>
+                        </button>
                         <button
                           onClick={() => onOpenExchangeModal(b)}
                           className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition"
@@ -544,7 +562,29 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
                       </>
                     )}
 
-                    {/* STATUS 4: SELESAI */}
+                    {/* STATUS 4: DISERVIS (F-08) */}
+                    {b.status === 'ryokou_diservis' && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => onReturnFromService && onReturnFromService(b.id, 'ryokou_disewa')}
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition"
+                          title="Servis selesai, lanjutkan sewa penyewa"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>Lanjut Sewa</span>
+                        </button>
+                        <button
+                          onClick={() => onOpenFinishModal(b)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition"
+                          title="Selesaikan kontrak sewa"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>Selesaikan Sewa</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* STATUS 5: SELESAI */}
                     {b.status === 'ryokou_selesai' && (
                       <span className="text-xs text-slate-400 font-semibold flex items-center gap-1">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
