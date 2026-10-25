@@ -4,6 +4,18 @@ Semua perubahan penting pada proyek ini dicatat dalam berkas ini.
 Format berbasis [Keep a Changelog](https://keepachangelog.com/id/1.1.0/),
 dan proyek ini menganut [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-10-24
+
+### Ditambahkan
+- Fitur **'Log Operasional Harian & Insiden Lapangan'** (`DailyOperationalLogSection.tsx`) langsung pada `DashboardView` untuk mencatat serah terima shift, kendala di lapangan, info cuaca/lalu lintas, kondisi armada, dan instruksi tim.
+- Skema database `dailyOperationalLogs` pada LocalStorage (`RyokoDatabase`) dengan mekanisme auto-migrasi aman pada `storageService.ts`.
+- Filter klasifikasi 5 kategori: *Serah Terima Shift*, *Insiden Lapangan*, *Lalu Lintas & Cuaca*, *Kondisi Armada*, dan *Instruksi Tim*.
+- Filter prioritas bertingkat (*Normal*, *Penting ⚠️*, dan *Darurat 🚨 dengan animasi visual*).
+- Opsi pengaitan unit fisik garasi (misal *SCP-01*, *NMAX-01*) dan lokasi kejadian spesifik (misal *Pool Dinoyo*, *Alun-Alun Batu*).
+- Form cepat penambahan catatan operasional dengan integrasi otomatis akun staf yang sedang bertugas.
+- Fitur 1-klik **Kirim WA** dan **Salin Format WhatsApp** untuk diseminasi instan laporan insiden ke grup koordinasi lapangan.
+- Pencatatan mutasi penambahan dan penghapusan log ke dalam riwayat `auditLogs` sistem.
+
 ## [3.3.0] - 2026-10-24
 
 ### Ditambahkan

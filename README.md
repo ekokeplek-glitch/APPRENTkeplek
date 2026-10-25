@@ -108,6 +108,14 @@ Setiap unit fisik motor terpantau lokasinya secara transparan:
 - Pemetaan distribusi pangsa pasar per model motor armada (*Honda Scoopy*, *Yamaha NMAX*, *Honda CRF 150L*, *Yamaha Fazzio*).
 - Tombol **Salin Memo WhatsApp Manajemen** untuk pelaporan eksekutif kepada pemilik/investor dan tombol **Cetak PDF**.
 
+### 13. 📝 Log Operasional Harian & Catatan Insiden Lapangan
+- Komponen terintegrasi pada `DashboardView` (`DailyOperationalLogSection.tsx`) untuk mendokumentasikan serah terima shift harian, kendala teknis unit, kondisi cuaca, hingga insiden kemacetan jalur wisata Malang & Batu.
+- Tersimpan permanen ke database **LocalStorage** (`dailyOperationalLogs`) dengan auto-migrasi aman.
+- Filter klasifikasi terarah: **Serah Terima Shift**, **Insiden Lapangan**, **Lalu Lintas & Cuaca**, **Kondisi Armada**, dan **Instruksi Tim**.
+- Indikator tingkat urgensi visual bertingkat: **Normal**, **Penting (⚠️)**, dan **Darurat (🚨 Berkedip)**.
+- Form pencatatan cepat dengan dukungan pengaitan unit fisik garasi (`SCP-01`, `NMAX-02`), titik lokasi kejadian, kronologi lengkap, dan identitas penulis.
+- Fitur **1-Klik Kirim WA / Salin Format**: Menghasilkan format pesan WhatsApp rapi untuk dibagikan secara instan ke grup koordinasi kurir dan manajemen rental.
+
 ---
 
 ## 📝 Template Booking 13 Field
@@ -238,6 +246,7 @@ Aplikasi dapat dipasang langsung pada perangkat Android tanpa Google Play Store:
 ├── src/
 │   ├── components/              # Antarmuka modular:
 │   │   ├── DashboardView.tsx    # Pusat kontrol, metrik, ketersediaan, & tren Recharts
+│   │   ├── DailyOperationalLogSection.tsx # Log harian, serah terima shift & insiden lapangan
 │   │   ├── MonthlyReportView.tsx# Laporan kinerja bulanan & okupansi armada jangka panjang
 │   │   ├── RevenueTrendChart.tsx# Visualisasi tren omset 7 hari (Recharts Area & Bar)
 │   │   ├── BookingDetailModal.tsx# Detail booking & generator Quick Share WhatsApp 3 template

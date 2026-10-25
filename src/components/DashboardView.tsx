@@ -14,6 +14,7 @@ import {
 import { getUserEffectivePermissions } from '../utils/userPermissions';
 import { CountdownAlertBanner } from './CountdownAlertBanner';
 import { RevenueTrendChart } from './RevenueTrendChart';
+import { DailyOperationalLogSection } from './DailyOperationalLogSection';
 import {
   Bike,
   Compass,
@@ -41,6 +42,7 @@ interface DashboardViewProps {
   onSelectTracking: (track: UnitTracking) => void;
   onSyncArmada: () => void;
   onOpenRecoveryWizard?: () => void;
+  onUpdateDatabase?: (updatedDb: RyokoDatabase, actionName: string, detail: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -52,6 +54,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectTracking,
   onSyncArmada,
   onOpenRecoveryWizard,
+  onUpdateDatabase,
 }) => {
   const permissions = getUserEffectivePermissions(activeUser);
   const canViewRevenue = permissions.canViewRevenue;
@@ -454,6 +457,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
       )}
+
+      {/* Log Operasional Harian & Insiden Lapangan (LocalStorage Sync) */}
+      <DailyOperationalLogSection
+        db={db}
+        activeUser={activeUser}
+        onUpdateDatabase={(updatedDb, actionName, detail) => {
+          if (onUpdateDatabase) {
+            onUpdateDatabase(updatedDb, actionName, detail);
+          }
+        }}
+      />
 
       {/* Two Column Section: Stock Status & Pending Action Strip */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

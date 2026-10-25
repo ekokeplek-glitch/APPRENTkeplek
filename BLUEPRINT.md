@@ -78,6 +78,7 @@
 | **M-09: Visual Analytics 7 Hari (Recharts)** | Kurva tren omset harian dan grafik batang intensitas permintaan unit | `RevenueTrendChart.tsx`, `DashboardView.tsx` |
 | **M-10: Laporan Kinerja Bulanan & Okupansi** | Rekapitulasi multi-bulan, formula okupansi armada, evaluasi laba bersih, memo WA | `MonthlyReportView.tsx` |
 | **M-11: Modal Detail & Quick Share WhatsApp** | Detail 13 poin pemesanan dan generator 3 template WhatsApp instan (Konfirmasi, Pengingat, Terima Kasih) | `BookingDetailModal.tsx` |
+| **M-12: Log Operasional Harian & Insiden** | Catatan serah terima shift, insiden lapangan, info lalu lintas/cuaca, filter prioritas & LocalStorage sync | `DailyOperationalLogSection.tsx`, `DashboardView.tsx` |
 
 *(Catatan: Modul WhatsApp dan Integrasi dipindahkan ke Bagian 10 sesuai instruksi).*
 

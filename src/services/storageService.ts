@@ -19,6 +19,10 @@ export function loadDatabase(): RyokoDatabase {
     if (!parsed.serviceRecords) {
       parsed.serviceRecords = INITIAL_DATABASE.serviceRecords || [];
     }
+    // Auto-migrate dailyOperationalLogs if missing
+    if (!parsed.dailyOperationalLogs || !Array.isArray(parsed.dailyOperationalLogs)) {
+      parsed.dailyOperationalLogs = INITIAL_DATABASE.dailyOperationalLogs || [];
+    }
     // Auto-migrate users if missing
     if (!parsed.users || !Array.isArray(parsed.users) || parsed.users.length === 0) {
       parsed.users = INITIAL_DATABASE.users || [];

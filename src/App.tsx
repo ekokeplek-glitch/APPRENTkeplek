@@ -928,6 +928,7 @@ export const App: React.FC = () => {
               }}
               onSyncArmada={handleSyncArmada}
               onOpenRecoveryWizard={() => setIsRecoveryModalOpen(true)}
+              onUpdateDatabase={updateDatabaseState}
             />
           )}
 

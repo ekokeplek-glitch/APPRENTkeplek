@@ -271,3 +271,20 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
   3. Tab "Laporan" aktif di Android Bottom Navigation untuk peran Administrator/Owner.
 * **Test Case:** Recharts rendering, occupancy rate calculation & monthly report audit
 * **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-017: Fitur Log Operasional Harian & Catatan Insiden Lapangan di Dashboard LocalStorage
+* **Fase:** FASE 8
+* **Deskripsi:** Mengimplementasikan fitur pencatatan log harian dan insiden operasional lapangan (`src/components/DailyOperationalLogSection.tsx`) pada `DashboardView` yang tersimpan permanen dalam database LocalStorage, dilengkapi filter kategori (Serah Terima Shift, Insiden Lapangan, Lalu Lintas & Cuaca, Kondisi Armada, Instruksi Tim), filter prioritas (Normal, Penting, Darurat), pemilihan unit fisik garasi & lokasi kejadian, pencarian real-time, audit log, serta tombol cepat salin & kirim laporan via WhatsApp ke grup kurir/staf.
+* **Dependensi:** `TASK-016`
+* **File:** `src/types/ryoko.ts`, `src/data/seedData.ts`, `src/services/storageService.ts`, `src/components/DailyOperationalLogSection.tsx`, `src/components/DashboardView.tsx`, `src/App.tsx`
+* **Docs Terkait:** `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`, `README.md`, `CHANGELOG.md`
+* **Acceptance Criteria:**
+  1. Admin dan staf dapat menulis catatan harian, insiden lapangan, atau instruksi shift baru langsung dari Dashboard.
+  2. Data log operasional tersimpan otomatis dan persisten ke dalam skema LocalStorage (`dailyOperationalLogs`).
+  3. Tersedia indikator prioritas (Normal, Penting, Darurat dengan alert visual), filter kategori, dan pencarian teks.
+  4. Tersedia tombol 1-klik untuk menyalin format teks WhatsApp dan membagikan laporan insiden ke tim lapangan.
+* **Test Case:** Operational log creation, LocalStorage persistence & WhatsApp text generator
+* **Metode Verifikasi:** Jalankan `npm run lint`, `npm run build`, dan `python3 scripts/zlce/zlce-check.py .`.
