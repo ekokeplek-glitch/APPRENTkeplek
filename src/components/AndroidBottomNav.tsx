@@ -8,6 +8,7 @@ import {
   Settings,
   Users,
   Navigation,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { AppUser } from '../types/ryoko';
 import { getUserEffectivePermissions } from '../utils/userPermissions';
@@ -18,6 +19,7 @@ export type ActiveNavTab =
   | 'tracking'
   | 'service'
   | 'fleet'
+  | 'reports'
   | 'settings'
   | 'users'
   | 'courier';
@@ -114,6 +116,16 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
         id: 'fleet',
         label: 'Armada',
         icon: Bike,
+        badge: 0,
+      });
+    }
+
+    // Monthly Reports: visible to Administrator or custom admin with canViewRevenue
+    if (activeUser?.role === 'administrator' || permissions.canViewRevenue) {
+      tabs.push({
+        id: 'reports',
+        label: 'Laporan',
+        icon: FileSpreadsheet,
         badge: 0,
       });
     }

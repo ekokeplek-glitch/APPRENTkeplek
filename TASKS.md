@@ -14,6 +14,7 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
 * **FASE 5: Panel Manajemen User & Role-Based Access Control 4 Tingkat** (`TASK-006`)
 * **FASE 6: Kwitansi Paperless, Countdown Real-Time & Armada Dinamis** (`TASK-007`, `TASK-008`, `TASK-009`)
 * **FASE 7: Review Claude, README Resmi, & Integrasi Kolaborasi Eksternal** (`TASK-010`, `TASK-011`, `TASK-012`, `TASK-013`, `TASK-014`)
+* **FASE 8: Quick Share WhatsApp, Recharts Visualizer & Laporan Okupansi Bulanan** (`TASK-015`, `TASK-016`)
 
 ---
 
@@ -237,4 +238,36 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
   3. Pengaturan menyediakan input Token & Chat ID dengan fitur uji coba koneksi dan alert contoh.
   4. Banner hitung mundur memiliki tombol pemicu notifikasi Telegram instan.
 * **Test Case:** Telegram alert generation & callback handler
+* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-015: Fitur 'Quick Share' WhatsApp & Modal Detail Booking
+* **Fase:** FASE 8
+* **Deskripsi:** Mengimplementasikan modal detail transaksi booking (`src/components/BookingDetailModal.tsx`) dan generator 3 template WhatsApp resmi (`src/services/whatsappService.ts`) mencakup Konfirmasi Booking, Pengingat Pengembalian, dan Ucapan Terima Kasih Pasca Sewa, dilengkapi live preview box, tombol 1-klik kirim ke WhatsApp, dan salin pesan ke clipboard.
+* **Dependensi:** `TASK-014`
+* **File:** `src/components/BookingDetailModal.tsx`, `src/services/whatsappService.ts`, `src/components/BookingsView.tsx`, `src/App.tsx`, `src/components/DigitalReceiptModal.tsx`
+* **Docs Terkait:** `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. Modal detail booking menyajikan rincian lengkap 13-point dan tab khusus Quick Share.
+  2. 3 template WhatsApp terformat rapi sesuai identitas Ryoko Rent.
+  3. Tombol Quick Share disematkan pada setiap kartu booking dan kwitansi digital.
+* **Test Case:** Quick Share link generator & clipboard copy test
+* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-016: Visual Analytics Tren 7 Hari (Recharts) & Laporan Okupansi Bulanan (`MonthlyReportView`)
+* **Fase:** FASE 8
+* **Deskripsi:** Mengintegrasikan pustaka Recharts untuk visualisasi tren omset dan intensitas permintaan unit 7 hari terakhir pada `DashboardView` (`src/components/RevenueTrendChart.tsx`), serta mengimplementasikan modul `src/components/MonthlyReportView.tsx` untuk menghitung total pendapatan, jumlah booking, biaya pemeliharaan, laba operasional, dan tingkat okupansi armada garasi bulanan (% Occupancy Rate) beserta grafik ComposedChart multi-bulan dan tombol salin memo eksekutif WhatsApp.
+* **Dependensi:** `TASK-015`
+* **File:** `src/components/RevenueTrendChart.tsx`, `src/components/MonthlyReportView.tsx`, `src/components/DashboardView.tsx`, `src/components/AndroidBottomNav.tsx`, `src/App.tsx`, `package.json`
+* **Docs Terkait:** `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. Komponen `RevenueTrendChart` menampilkan kurva pendapatan dan grafik batang unit 7 hari terakhir.
+  2. Komponen `MonthlyReportView` menyajikan kalkulasi okupansi armada, histori multi-bulan, dan distribusi model motor.
+  3. Tab "Laporan" aktif di Android Bottom Navigation untuk peran Administrator/Owner.
+* **Test Case:** Recharts rendering, occupancy rate calculation & monthly report audit
 * **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.

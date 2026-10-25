@@ -4,6 +4,23 @@ Semua perubahan penting pada proyek ini dicatat dalam berkas ini.
 Format berbasis [Keep a Changelog](https://keepachangelog.com/id/1.1.0/),
 dan proyek ini menganut [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-10-24
+
+### Ditambahkan
+- Komponen `MonthlyReportView` yang merangkum total pendapatan, jumlah booking, dan tingkat okupansi armada per bulan menggunakan histori data booking untuk manajemen operasional jangka panjang.
+- Perhitungan otomatis Tingkat Okupansi Armada (% Occupancy Rate) berbasis unit-hari tersewa terhadap kapasitas penuh armada garasi 16 unit.
+- Grafik dual-axis interaktif Recharts (`ComposedChart`) korelasi pendapatan bulanan (Rp) dan tingkat okupansi (%).
+- Tab navigasi baru **"Laporan"** (`reports`) pada Android Bottom Navigation untuk Administrator/Owner (`canViewRevenue`).
+- Komponen `RevenueTrendChart` berbasis **Recharts** (^3.10.1) pada `DashboardView` untuk visualisasi tren omset dan intensitas permintaan unit 7 hari terakhir (AreaChart & BarChart).
+- Komponen `BookingDetailModal` dengan fitur **Quick Share WhatsApp** untuk menghasilkan 3 template pesan resmi (Konfirmasi Booking, Pengingat Pengembalian, dan Ucapan Terima Kasih).
+- Fitur live preview pesan WhatsApp gelap, tombol 1-klik "Kirim ke WhatsApp", dan 1-klik "Salin Pesan" dengan konfirmasi visual.
+- Tombol ekspor memo eksekutif laporan manajemen WhatsApp dan cetak PDF pada `MonthlyReportView`.
+
+### Diubah
+- Konfigurasi `vite.config.ts` diperbarui menggunakan `import.meta.dirname` menggantikan `__dirname` untuk kompatibilitas native ESM Vite 8.
+- Penambahan tombol pintas "Laporan Bulanan & Okupansi" di bagian header rekapitulasi finansial `DashboardView`.
+- Kartu transaksi pada `BookingsView` dan modal `DigitalReceiptModal` dilengkapi tombol aksi langsung *Quick Share WA*.
+
 ## [3.2.2] - 2026-10-24
 
 ### Ditambahkan

@@ -42,6 +42,7 @@ import {
 import { PWAInstallModal } from './components/PWAInstallModal';
 import { DigitalReceiptModal } from './components/DigitalReceiptModal';
 import { BookingDetailModal, QuickShareTab } from './components/BookingDetailModal';
+import { MonthlyReportView } from './components/MonthlyReportView';
 
 export const App: React.FC = () => {
   // Database State in LocalStorage
@@ -974,6 +975,17 @@ export const App: React.FC = () => {
               onDeleteMotor={handleDeleteMotor}
               onAddPhysicalUnit={handleAddPhysicalUnit}
               onApplyBulkPriceAdjustment={handleApplyBulkPriceAdjustment}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <MonthlyReportView
+              db={db}
+              activeUser={activeUser}
+              onNavigateBooking={b => {
+                handleOpenDetailModal(b, 'detail');
+              }}
+              onNavigateTab={tab => setActiveTab(tab as ActiveNavTab)}
             />
           )}
 
