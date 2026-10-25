@@ -13,6 +13,7 @@ import {
 } from '../services/bookingEngine';
 import { getUserEffectivePermissions } from '../utils/userPermissions';
 import { CountdownAlertBanner } from './CountdownAlertBanner';
+import { RevenueTrendChart } from './RevenueTrendChart';
 import {
   Bike,
   Compass,
@@ -422,6 +423,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {db.serviceRecords?.length || 0} catatan perawatan armada
               </span>
             </div>
+          </div>
+
+          {/* Recharts Visualizer: Tren Pendapatan 7 Hari Terakhir & Pola Permintaan */}
+          <div className="pt-1">
+            <RevenueTrendChart db={db} />
           </div>
         </div>
       ) : (

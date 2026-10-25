@@ -41,6 +41,7 @@ import {
 } from './components/ActionModals';
 import { PWAInstallModal } from './components/PWAInstallModal';
 import { DigitalReceiptModal } from './components/DigitalReceiptModal';
+import { BookingDetailModal, QuickShareTab } from './components/BookingDetailModal';
 
 export const App: React.FC = () => {
   // Database State in LocalStorage
@@ -65,6 +66,11 @@ export const App: React.FC = () => {
   const [selectedFinishBooking, setSelectedFinishBooking] = useState<BookingRecord | null>(null);
   const [selectedUpdateTracking, setSelectedUpdateTracking] = useState<UnitTracking | null>(null);
   const [selectedReceiptBooking, setSelectedReceiptBooking] = useState<BookingRecord | null>(null);
+  const [selectedDetailBooking, setSelectedDetailBooking] = useState<{
+    booking: BookingRecord;
+    initialTab: 'detail' | 'quick_share';
+    initialShareTab: QuickShareTab;
+  } | null>(null);
 
   // Parsed ZLCE Session State for Recovery Wizard
   const recoverySessionState: ParsedSessionState = useMemo(() => {
@@ -114,6 +120,18 @@ export const App: React.FC = () => {
     }
     setDb({ ...newDb });
   }, []);
+
+  // Helper to open Booking Detail Modal / Quick Share
+  const handleOpenDetailModal = useCallback(
+    (
+      booking: BookingRecord,
+      initialTab: 'detail' | 'quick_share' = 'detail',
+      initialShareTab: QuickShareTab = 'confirmation'
+    ) => {
+      setSelectedDetailBooking({ booking, initialTab, initialShareTab });
+    },
+    []
+  );
 
   // Sync Armada helper (D-26 & Opsi 3A: 1 Baris per Unit Fisik)
   const handleSyncArmada = useCallback(() => {
@@ -902,7 +920,7 @@ export const App: React.FC = () => {
               onNavigateTab={tab => setActiveTab(tab)}
               onOpenNewBooking={() => setIsNewBookingModalOpen(true)}
               onSelectBooking={b => {
-                setActiveTab('bookings');
+                handleOpenDetailModal(b, 'detail');
               }}
               onSelectTracking={t => {
                 setSelectedUpdateTracking(t);
@@ -922,6 +940,7 @@ export const App: React.FC = () => {
               onOpenFinishModal={b => setSelectedFinishBooking(b)}
               onCancelBooking={handleCancelBooking}
               onOpenReceiptModal={b => setSelectedReceiptBooking(b)}
+              onOpenDetailModal={handleOpenDetailModal}
             />
           )}
 
@@ -1099,6 +1118,31 @@ export const App: React.FC = () => {
           booking={selectedReceiptBooking}
           db={db}
           onClose={() => setSelectedReceiptBooking(null)}
+          onOpenQuickShare={b => {
+            const defaultShareTab: QuickShareTab =
+              b.status === 'ryokou_selesai'
+                ? 'thankyou'
+                : b.status === 'ryokou_disewa'
+                ? 'reminder'
+                : 'confirmation';
+            handleOpenDetailModal(b, 'quick_share', defaultShareTab);
+          }}
+        />
+      )}
+
+      {/* 10. Booking Detail Modal & Quick Share WhatsApp */}
+      {selectedDetailBooking && (
+        <BookingDetailModal
+          booking={selectedDetailBooking.booking}
+          db={db}
+          initialTab={selectedDetailBooking.initialTab}
+          initialQuickShareTab={selectedDetailBooking.initialShareTab}
+          onClose={() => setSelectedDetailBooking(null)}
+          onOpenReceiptModal={b => setSelectedReceiptBooking(b)}
+          onOpenApproveModal={b => setSelectedApproveBooking(b)}
+          onOpenHandoverModal={b => setSelectedHandoverBooking(b)}
+          onOpenExchangeModal={b => setSelectedExchangeBooking(b)}
+          onOpenFinishModal={b => setSelectedFinishBooking(b)}
         />
       )}
     </div>
