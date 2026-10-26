@@ -31,23 +31,31 @@ Aplikasi ini beroperasi dengan prinsip **Offline-First**, memungkinkan pemilik r
 
 ### 1. 📋 Template Booking Standar 13 Field & Smart Chat Parser
 - Formulir booking rapi mencakup 13 field identitas dan operasional lengkap tanpa kompromi.
-- **Smart WhatsApp Chat Parser**: Memungkinkan operator menempelkan (*paste*) pesan format booking acak langsung dari chat WhatsApp pelanggan, lalu secara otomatis mengekstrak data ke form dalam 1 detik.
+- **Pemisahan Kolom Tanggal & Jam Mandiri**: Kolom Tanggal (`type="date"`) dan Jam (`type="text"`) dipisahkan secara independen untuk memudahkan perbaikan dan meminimalkan kesalahan input.
+- **Normalisasi Format Jam Otomatis**: Input jam bebas diformat otomatis saat *on blur*:
+  - `4`, `04`, `4.00`, `4,00`, `04:00` $\rightarrow$ `04:00`
+  - `16`, `16.00`, `16,00` $\rightarrow$ `16:00`
+  - `9.30`, `9,30` $\rightarrow$ `09:30`
+- **Smart WhatsApp Chat Parser**: Memungkinkan operator menempelkan (*paste*) pesan format booking acak langsung dari chat WhatsApp pelanggan, memotong otomatis prefix export chat WhatsApp (`[DD/MM/YY HH:MM] ...: `), dan mengekstrak data ke form dalam 1 detik.
 - Tombol **1-Klik Salin Format Kosong** siap kirim ke calon penyewa di WhatsApp.
 
-### 2. 🔄 State Machine Penyewaan 5 Status Terproteksi
-Alur transaksi mengikuti siklus hidup operasional rental yang ketat:
-1. `ryokou_booking` (Pemesanan Baru): Menunggu verifikasi admin dan penguncian unit fisik motor garasi.
+### 2. 🔄 State Machine Penyewaan 6 Status Terproteksi
+Alur transaksi mengikuti siklus hidup operasional rental yang ketat dan auditabel:
+1. `ryokou_booking` (Pemesanan Baru): Menunggu verifikasi admin dan penguncian unit fisik motor garasi. Unit fisik yang dialokasikan tetap berstatus **`parkir`** (tidak langsung menjadi `disewa`).
 2. `ryokou_approved` (Disetujui): Unit fisik telah dikunci permanen, menunggu jadwal serah terima oleh kurir atau tamu datang ke pool.
 3. `ryokou_disewa` (Sedang Berjalan): Motor telah diserahterimakan ke penyewa. Dilindungi proteksi anti-hapus (D-20) untuk mencegah kehilangan catatan audit.
 4. `ryokou_diservis` (Diservis): Unit mengalami kendala teknis atau masuk jadwal perawatan berkala di bengkel.
 5. `ryokou_selesai` (Selesai): Unit telah diterima kembali di Pool Malang / Pool Batu, denda keterlambatan terkalkulasi otomatis.
+6. `ryokou_dibatalkan` (Dibatalkan / Soft-Cancel): Pembatalan pemesanan tercatat utuh dalam basis data untuk keperluan audit operasional dan analisis pembatalan tanpa merusak integritas data historis.
 
 ### 3. ⏱️ Turnaround Buffer 60 Menit & Anti Double-Booking
 - Algoritma `isUnitAvailableForRange` secara cerdas memberikan jeda waktu **60 menit** sebelum waktu sewa dimulai dan sesudah waktu sewa berakhir.
 - Jeda ini dialokasikan untuk pembersihan motor, inspeksi fisik, pengisian bahan bakar, dan pengecekan kelengkapan 2 helm SNI.
 
-### 4. 💰 Katalog Tarif Multi-Tier Dinamis (Termasuk Sewa 1 Bulan)
-- Mendukung opsi **ShortRent jam** (3 Jam, 6 Jam, 9 Jam, 12 Jam).
+### 4. 💰 Katalog Tarif Multi-Tier Dinamis & Kepatuhan Deal Awal (F-03 P0)
+- **Aturan Deal Awal Mutlak**: Perhitungan biaya sewa murni berpegang pada kesepakatan awal yang dipilih pelanggan saat reservasi. Sistem dilarang mengubah perhitungan sendiri secara sepihak.
+  - *Contoh:* Jika sewa awal disepakati **Harian**, maka durasi sewa selama 8 hari tetap dihitung $8 \times \text{tarif harian}$, dan tidak otomatis diubah menjadi paket 1 minggu + 1 hari. Paket mingguan atau bulanan hanya dihitung bila dari awal disepakati.
+- Mendukung opsi **ShortRent jam** (3 Jam, 6 Jam, 9 Jam, 12 Jam) dengan nilai fallback otomatis untuk mencegah kesalahan `NaN`.
 - Mendukung opsi **Sewa Harian** (1 Hari / 24 Jam, 1 Minggu / 7 Hari, dan **1 Bulan / 30 Hari**).
 - Tombol kalkulasi tanggal selesai otomatis $+30$ hari saat paket 1 bulan dipilih.
 
@@ -142,8 +150,9 @@ Format standar transaksi pemesanan unit RyokoRent:
 
 ## 🔌 Integrasi Eksternal
 
-### A. WhatsApp Messaging Gateway
+### A. WhatsApp Messaging Gateway (Honest Links)
 - URL format standar `https://api.whatsapp.com/send?phone=...&text=...` berstandar UTF-8.
+- **Standar Tautan Bersih (Anti-Dummy Number)**: Tidak menggunakan nomor ponsel tiruan (`6281234567890`). Jika nomor pelanggan belum ada, sistem menghasilkan share link teks murni tanpa mengarahkan ke nomor salah.
 - 6 template pesan otomatis:
   1. Konfirmasi Booking Baru
   2. Surat Tugas Pengantaran Kurir Lapangan
@@ -152,8 +161,9 @@ Format standar transaksi pemesanan unit RyokoRent:
   5. Kwitansi Pengembalian & Denda Keterlambatan
   6. Notifikasi Unit Selesai Servis dari Bengkel
 
-### B. Google Sheets Collaboration (`src/services/googleSheetsService.ts`)
+### B. Google Sheets Collaboration & Offline Queue (`src/services/googleSheetsService.ts`)
 - Ekspor seluruh transaksi 13 field langsung ke **CSV** atau **Google Apps Script Webhook**.
+- **Offline Sync Queue**: Pengiriman webhook saat perangkat luring otomatis diantrekan di LocalStorage (`offlineSheetsQueue`) dan disinkronkan saat koneksi online pulih (`flushOfflineSheetsQueue`).
 - Alur review & opsi operasional di spreadsheet:
   - Kolom **Status Review**: `PENDING_REVIEW` | `APPROVED` | `REJECTED` | `NEED_DOCS`
   - Kolom **Opsi Tindak Lanjut**: `Siapkan Unit` | `Tugaskan Kurir` | `Kirim Tagihan DP` | `Jadwalkan Servis`
@@ -170,16 +180,20 @@ Format standar transaksi pemesanan unit RyokoRent:
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Ketahanan Data
 
 - **Framework Frontend:** React 19 + TypeScript
 - **Bundler:** Vite 8 (Modern ESM with `import.meta.dirname`)
 - **Styling:** Tailwind CSS v4 + Motion
 - **Visualisasi Data & Grafik:** Recharts (^3.10.1)
 - **Ikonografi:** Lucide React
-- **PWA Engine:** `vite-plugin-pwa` + Web App Manifest
-- **Penyimpanan Data:** Browser LocalStorage (`ryokourent_db_v1`) + Export/Import JSON
-- **Metodologi Pengembangan:** Zero-Loss Context Engineering (ZLCE) v3.2.2
+- **PWA Engine:** `vite-plugin-pwa` (Prompt update mode) + Web App Manifest
+- **Penyimpanan Data Terproteksi:** 
+  - Browser LocalStorage (`ryokourent_db_v1`)
+  - **Pencegahan Korupsi Data**: Pencadangan otomatis payload rusak ke `ryokourent_db_corrupt_<timestamp>` jika JSON parse error terjadi
+  - **Auto-Snapshot Restore**: Snapshot otomatis `ryokourent_snapshot_<timestamp>` sebelum data ditimpa saat impor database
+  - **Single Unified Migration**: Satu jalur migrasi skema `migrateDatabase` untuk load awal dan impor file JSON
+- **Metodologi Pengembangan:** Zero-Loss Context Engineering (ZLCE) v3.5.0
 
 ---
 
