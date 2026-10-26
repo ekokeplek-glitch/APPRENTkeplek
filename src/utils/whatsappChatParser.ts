@@ -173,7 +173,7 @@ export function extractDate(
 }
 
 /**
- * Ekstraksi waktu jam dan menit 24 jam (mendukung 15:40, 15.40, 3 sore, jam 3)
+ * Ekstraksi waktu jam dan menit 24 jam (mendukung 15:40, 15.40, 15,40, 3 sore, jam 3)
  */
 export function extractTime(text: string): string | null {
   if (!text) return null;
@@ -183,7 +183,7 @@ export function extractTime(text: string): string | null {
   let suffix: string | undefined;
   let bare = false;
 
-  let m = t.match(/\b(\d{1,2})[.:](\d{2})\s*(pagi|siang|sore|malam|am|pm)?\b/);
+  let m = t.match(/\b(\d{1,2})[.:,](\d{2})\s*(pagi|siang|sore|malam|am|pm)?\b/);
   if (m) {
     h = +m[1];
     min = +m[2];
@@ -209,6 +209,80 @@ export function extractTime(text: string): string | null {
 
   if (h > 23 || min > 59) return null;
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/**
+ * Normalisasi input waktu fleksibel (F-03 & TASK-027)
+ * Menganggap sama: "4", "04", "4.00", "4,00", "04:00" -> "04:00"
+ * Serta "16", "16.00", "16,00", "16:00" -> "16:00"
+ * Serta "9.30", "9,30", "09:30" -> "09:30"
+ */
+export function normalizeTimeInput(val: string): string {
+  if (!val) return '09:00';
+  const clean = val.trim().toLowerCase();
+
+  // Pola HH.mm, HH,mm, atau HH:mm (contoh: "4.00", "4,00", "15:40", "15.40")
+  const mColonDotComma = clean.match(/^(\d{1,2})[.:,](\d{1,2})$/);
+  if (mColonDotComma) {
+    const h = parseInt(mColonDotComma[1], 10);
+    const m = parseInt(mColonDotComma[2], 10);
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+  }
+
+  // Pola angka jam murni (contoh: "4", "04", "16")
+  const mBare = clean.match(/^(\d{1,2})$/);
+  if (mBare) {
+    const h = parseInt(mBare[1], 10);
+    if (h >= 0 && h <= 23) {
+      return `${String(h).padStart(2, '0')}:00`;
+    }
+  }
+
+  // Jika teks kompleks (mis. "jam 4 sore"), fallback ke extractTime
+  const ext = extractTime(clean);
+  if (ext) return ext;
+
+  return '09:00';
+}
+
+/**
+ * Normalisasi input tanggal fleksibel (TASK-027)
+ * Mendukung YYYY-MM-DD, DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY, atau nama bulan teks
+ */
+export function normalizeDateInput(val: string, refYear = new Date().getFullYear()): string {
+  if (!val) return '';
+  const clean = val.trim();
+
+  // Format ISO standar YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+
+  // Format DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY
+  const m1 = clean.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (m1) {
+    const d = parseInt(m1[1], 10);
+    const mo = parseInt(m1[2], 10);
+    const y = parseInt(m1[3], 10) < 100 ? 2000 + parseInt(m1[3], 10) : parseInt(m1[3], 10);
+    const ymd = validYmd(y, mo, d);
+    if (ymd) return ymd;
+  }
+
+  // Format DD/MM, DD.MM, DD-MM
+  const m2 = clean.match(/^(\d{1,2})[\/.-](\d{1,2})$/);
+  if (m2) {
+    const d = parseInt(m2[1], 10);
+    const mo = parseInt(m2[2], 10);
+    const ymd = validYmd(refYear, mo, d);
+    if (ymd) return ymd;
+  }
+
+  const ext = extractDate(clean, refYear);
+  if (ext) return ext.ymd;
+
+  return clean;
 }
 
 export function parseIndonesianDate(text: string, defaultYear = new Date().getFullYear()): string {
@@ -253,7 +327,11 @@ export function parseWhatsAppBookingChat(rawText: string): ParsedBookingChat {
   let jumlahHelmExplicit = false;
 
   for (const line of lines) {
-    const parsedLine = splitLabel(line);
+    const cleanLine = line
+      .replace(/^\[\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[,\s]+\d{1,2}[.:]\d{2}(?:[.:]\d{2})?\]\s*[^:]*:\s*/, '')
+      .replace(/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[,\s]+\d{1,2}[.:]\d{2}\s*-\s*[^:]*:\s*/, '')
+      .trim();
+    const parsedLine = splitLabel(cleanLine);
     const label = parsedLine?.label || '';
     const value = parsedLine?.value || '';
 

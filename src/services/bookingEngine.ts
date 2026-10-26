@@ -209,10 +209,10 @@ export function calculateOvertimePenalty(
       };
     }
 
-    const p3 = motor.harga3Jam;
-    const p6 = motor.harga6Jam;
-    const p9 = motor.harga9Jam;
-    const p12 = motor.harga12Jam;
+    const p3 = motor.harga3Jam || 45000;
+    const p6 = motor.harga6Jam || 60000;
+    const p9 = motor.harga9Jam || 75000;
+    const p12 = motor.harga12Jam || 85000;
 
     // ShortRent 12 Jam -> Denda sama dengan denda harian per jam
     if (booking.pilihanDurasi === '12_jam') {
@@ -388,11 +388,12 @@ export function getPublicStockIndicator(
  * Matriks Transisi Status Resmi RyokoRent (Snippet C - BR-02)
  */
 export const NEXT_STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  ryokou_booking: ['ryokou_approved'],
-  ryokou_approved: ['ryokou_disewa', 'ryokou_booking'],
+  ryokou_booking: ['ryokou_approved', 'ryokou_dibatalkan'],
+  ryokou_approved: ['ryokou_disewa', 'ryokou_booking', 'ryokou_dibatalkan'],
   ryokou_disewa: ['ryokou_selesai', 'ryokou_diservis'],
   ryokou_diservis: ['ryokou_disewa', 'ryokou_selesai'],
   ryokou_selesai: [],
+  ryokou_dibatalkan: [],
 };
 
 /**
@@ -436,7 +437,7 @@ export function checkTransition(
 
 /**
  * Kalkulasi tarif sewa cerdas berdasarkan model motor, kategori tarif, durasi, dan rentang tanggal (F-03)
- * Mendukung sewa multi-hari (2-6 hari prorata, 7+ hari mingguan, 30+ hari bulanan)
+ * Menghormati kesepakatan awal (deal awal harian tetap harian murni meski 8 hari atau lebih; mingguan jika deal awal mingguan; bulanan jika deal awal bulanan)
  */
 export function calculateDynamicRentalTariff(
   motor: MotorModel,
@@ -454,50 +455,66 @@ export function calculateDynamicRentalTariff(
   }
 
   // Jika durasi jam (ShortRent)
-  if (kategoriTarif === 'jam') {
-    if (pilihanDurasi === '3_jam') return { totalHarga: motor.harga3Jam, labelDurasi: 'ShortRent 3 Jam' };
-    if (pilihanDurasi === '6_jam') return { totalHarga: motor.harga6Jam, labelDurasi: 'ShortRent 6 Jam' };
-    if (pilihanDurasi === '9_jam') return { totalHarga: motor.harga9Jam, labelDurasi: 'ShortRent 9 Jam' };
-    if (pilihanDurasi === '12_jam') return { totalHarga: motor.harga12Jam, labelDurasi: 'ShortRent 12 Jam' };
+  if (kategoriTarif === 'jam' || ['3_jam', '6_jam', '9_jam', '12_jam'].includes(pilihanDurasi)) {
+    if (pilihanDurasi === '3_jam') return { totalHarga: motor.harga3Jam || 45000, labelDurasi: 'ShortRent 3 Jam' };
+    if (pilihanDurasi === '6_jam') return { totalHarga: motor.harga6Jam || 60000, labelDurasi: 'ShortRent 6 Jam' };
+    if (pilihanDurasi === '9_jam') return { totalHarga: motor.harga9Jam || 75000, labelDurasi: 'ShortRent 9 Jam' };
+    if (pilihanDurasi === '12_jam') return { totalHarga: motor.harga12Jam || 85000, labelDurasi: 'ShortRent 12 Jam' };
+    return { totalHarga: motor.harga3Jam || 45000, labelDurasi: 'ShortRent 3 Jam' };
   }
 
-  // Kategori Harian / Mingguan / Bulanan dihitung dari selisih waktu aktual
-  if (startEpoch && endEpoch && endEpoch > startEpoch) {
-    const totalSeconds = endEpoch - startEpoch;
-    const totalHours = totalSeconds / 3600;
+  const harianRate = motor.harga1Hari || 85000;
+  const mingguanRate = motor.harga1Minggu || 500000;
+  const bulananRate = motor.harga1Bulan || 1750000;
 
-    // Jika >= 28 hari (1 Bulan atau lebih)
-    if (totalHours >= 28 * 24) {
-      const months = Math.max(1, Math.round(totalHours / (30 * 24)));
-      const totalHarga = (motor.harga1Bulan || 1750000) * months;
-      return {
-        totalHarga,
-        labelDurasi: months > 1 ? `Sewa ${months} Bulan (${months * 30} Hari)` : 'Sewa 1 Bulan (30 Hari Penuh)',
-      };
-    }
-
-    // Jika >= 7 hari
-    if (totalHours >= 7 * 24) {
-      const weeks = Math.floor(totalHours / (7 * 24));
-      const extraHours = totalHours - weeks * 7 * 24;
+  // Jika kesepakatan awal adalah BULANAN
+  if (pilihanDurasi === '1_bulan') {
+    if (startEpoch && endEpoch && endEpoch > startEpoch) {
+      const totalHours = (endEpoch - startEpoch) / 3600;
+      const months = Math.max(1, Math.floor(totalHours / (30 * 24)));
+      const extraHours = Math.max(0, totalHours - months * 30 * 24);
       const extraDays = Math.ceil(extraHours / 24);
-      const totalHarga = weeks * motor.harga1Minggu + extraDays * motor.harga1Hari;
+      const totalHarga = months * bulananRate + extraDays * harianRate;
       return {
         totalHarga,
-        labelDurasi: extraDays > 0 ? `Sewa ${weeks} Minggu + ${extraDays} Hari` : `Sewa ${weeks} Minggu (7 Hari)`,
+        labelDurasi:
+          extraDays > 0
+            ? `Sewa ${months} Bulan + ${extraDays} Hari (Tarif Bulanan)`
+            : months > 1
+            ? `Sewa ${months} Bulan (Tarif Bulanan)`
+            : '1 Bulan (30 Hari Penuh) - Tarif Bulanan',
       };
     }
+    return { totalHarga: bulananRate, labelDurasi: '1 Bulan (30 Hari)' };
+  }
 
-    // 1 sampai 6 hari (Multi-hari prorata harian)
+  // Jika kesepakatan awal adalah MINGGUAN
+  if (pilihanDurasi === '1_minggu') {
+    if (startEpoch && endEpoch && endEpoch > startEpoch) {
+      const totalHours = (endEpoch - startEpoch) / 3600;
+      const weeks = Math.max(1, Math.floor(totalHours / (7 * 24)));
+      const extraHours = Math.max(0, totalHours - weeks * 7 * 24);
+      const extraDays = Math.ceil(extraHours / 24);
+      const totalHarga = weeks * mingguanRate + extraDays * harianRate;
+      return {
+        totalHarga,
+        labelDurasi:
+          extraDays > 0
+            ? `Sewa ${weeks} Minggu + ${extraDays} Hari (Tarif Mingguan)`
+            : `Sewa ${weeks} Minggu (7 Hari) - Tarif Mingguan`,
+      };
+    }
+  }
+
+  // Default: Kategori HARIAN (Deal awal harian tetap dihitung harian, misal 8 hari = 8 x harga harian tanpa konversi otomatis)
+  if (startEpoch && endEpoch && endEpoch > startEpoch) {
+    const totalHours = (endEpoch - startEpoch) / 3600;
     const days = Math.max(1, Math.ceil(totalHours / 24));
     return {
-      totalHarga: days * motor.harga1Hari,
-      labelDurasi: days === 1 ? '1 Hari (24 Jam)' : `Sewa ${days} Hari (${days * 24} Jam)`,
+      totalHarga: days * harianRate,
+      labelDurasi: days === 1 ? '1 Hari (24 Jam)' : `Sewa ${days} Hari (${days * 24} Jam) - Tarif Harian`,
     };
   }
 
-  // Fallback ke pilihanDurasi tombol jika tanggal belum lengkap
-  if (pilihanDurasi === '1_bulan') return { totalHarga: motor.harga1Bulan || 1750000, labelDurasi: '1 Bulan (30 Hari)' };
-  if (pilihanDurasi === '1_minggu') return { totalHarga: motor.harga1Minggu, labelDurasi: '1 Minggu (7 Hari)' };
-  return { totalHarga: motor.harga1Hari, labelDurasi: '1 Hari (24 Jam)' };
+  return { totalHarga: harianRate, labelDurasi: '1 Hari (24 Jam)' };
 }

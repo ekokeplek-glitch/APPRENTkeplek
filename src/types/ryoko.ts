@@ -3,7 +3,8 @@ export type BookingStatus =
   | 'ryokou_approved'   // 2. Disetujui (Unit Terkunci, Menunggu Serah Terima)
   | 'ryokou_disewa'     // 3. Sedang Berjalan (Unit dibawa penyewa)
   | 'ryokou_diservis'   // 4. Diservis (Unit sedang dalam perawatan di bengkel)
-  | 'ryokou_selesai';   // 5. Selesai (Unit telah dikembalikan ke Pool)
+  | 'ryokou_selesai'    // 5. Selesai (Unit telah dikembalikan ke Pool)
+  | 'ryokou_dibatalkan';// 6. Dibatalkan (Pemesanan dibatalkan, unit dilepas)
 
 export type UnitPositionStatus = 'parkir' | 'kurir' | 'servis' | 'disewa';
 

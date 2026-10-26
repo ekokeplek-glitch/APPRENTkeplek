@@ -19,7 +19,12 @@ import {
 import { AndroidStatusBar } from './components/AndroidStatusBar';
 import { AndroidTopBar } from './components/AndroidTopBar';
 import { AndroidBottomNav, ActiveNavTab } from './components/AndroidBottomNav';
-import { checkTransition, nextId } from './services/bookingEngine';
+import {
+  checkTransition,
+  nextId,
+  isUnitAvailableForRange,
+  parseWibToEpoch,
+} from './services/bookingEngine';
 import { DashboardView } from './components/DashboardView';
 import { BookingsView } from './components/BookingsView';
 import { TrackingView } from './components/TrackingView';
@@ -212,16 +217,24 @@ export const App: React.FC = () => {
     let updatedTracking = [...db.tracking];
 
     if (lockUnitId) {
+      // Guard B1: Verifikasi ketersediaan unit sebelum mengunci
+      const start = newBooking.startEpoch || parseWibToEpoch(newBooking.jamTanggalMulai);
+      const end = newBooking.endEpoch || parseWibToEpoch(newBooking.jamTanggalSelesai);
+      if (!isUnitAvailableForRange(lockUnitId, start, end, db)) {
+        alert('Gagal Kunci Unit: Unit fisik bentrok jadwal atau sedang tidak aktif.');
+        return;
+      }
+
       updatedTracking = updatedTracking.map(t => {
         if (t.unitId === lockUnitId) {
           return {
             ...t,
-            statusPosisi: 'disewa' as const,
+            statusPosisi: 'parkir' as const, // Tetap parkir sampai serah terima fisik dilakukan (BR-02)
             bookingId: newBooking.id,
             noBooking: newBooking.noBooking,
             namaPenyewa: newBooking.nama,
             tenggatKembali: newBooking.jamTanggalSelesai.replace('T', ' '),
-            catatan: `Sewa langsung dikunci ke ${newBooking.nama}`,
+            catatan: `Unit dipesan & terkunci untuk booking #${newBooking.noBooking} (${newBooking.nama})`,
             updatedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
             updatedBy: db.settings.operatorName || 'Operator Ryoko',
           };
@@ -640,28 +653,66 @@ export const App: React.FC = () => {
     );
   };
 
-  // 6. Cancel / Reject Booking (D-20 & F-21)
+  // 6. Cancel / Reject Booking (D-20, F-21, B8 Guard & Soft-Cancel)
   const handleCancelBooking = (bookingId: number) => {
     const targetBooking = db.bookings.find(b => b.id === bookingId);
     if (!targetBooking) return;
 
     if (targetBooking.status === 'ryokou_disewa') {
-      alert('Proteksi Keamanan (D-20 & F-21): Unit yang sedang berstatus "Disewa" dilarang dihapus sebelum transaksi diselesaikan!');
+      alert('Proteksi Keamanan (D-20 & F-21): Unit yang sedang berstatus "Disewa" dilarang dibatalkan sebelum transaksi pengembalian selesai!');
+      return;
+    }
+    if (targetBooking.status === 'ryokou_diservis') {
+      alert('Proteksi Keamanan (D-20): Transaksi dengan unit yang sedang di bengkel (Diservis) tidak boleh dibatalkan langsung!');
+      return;
+    }
+    if (targetBooking.status === 'ryokou_selesai') {
+      alert('Proteksi Keamanan (B8): Transaksi yang sudah Selesai tidak boleh dibatalkan karena merupakan rekaman riwayat resmi!');
+      return;
+    }
+    if (targetBooking.status === 'ryokou_dibatalkan') {
+      alert('Pemberitahuan: Transaksi ini sudah berstatus dibatalkan.');
       return;
     }
 
     const ok = window.confirm(
-      `Apakah Anda yakin ingin membatalkan/menghapus booking #${targetBooking.noBooking} oleh ${targetBooking.nama}? Tindakan ini permanen.`
+      `Apakah Anda yakin ingin membatalkan booking #${targetBooking.noBooking} oleh ${targetBooking.nama}? Status akan diubah menjadi Dibatalkan dan unit fisik (jika ada) akan dibebaskan kembali ke pool.`
     );
     if (!ok) return;
 
-    const updatedBookings = db.bookings.filter(b => b.id !== bookingId);
+    const nowStr =
+      new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }) +
+      ' ' +
+      new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+      ' WIB';
 
-    // If unit was locked, release it back to pool
+    // Soft cancel: status diubah ke ryokou_dibatalkan agar riwayat audit tidak hilang (B8)
+    const updatedBookings = db.bookings.map(b => {
+      if (b.id === bookingId) {
+        return {
+          ...b,
+          status: 'ryokou_dibatalkan' as const,
+          catatanKhusus: b.catatanKhusus
+            ? `${b.catatanKhusus} | [Dibatalkan: ${nowStr}]`
+            : `[Dibatalkan: ${nowStr}]`,
+        };
+      }
+      return b;
+    });
+
+    // If unit was locked, release it back to pool with B3 check (t.bookingId === bookingId)
     let updatedTracking = [...db.tracking];
     if (targetBooking.unitId) {
       updatedTracking = updatedTracking.map(t => {
-        if (t.unitId === targetBooking.unitId && t.statusPosisi !== 'servis') {
+        if (
+          t.unitId === targetBooking.unitId &&
+          (!t.bookingId || t.bookingId === bookingId) &&
+          t.statusPosisi !== 'servis'
+        ) {
           return {
             ...t,
             statusPosisi: 'parkir' as const,
@@ -669,8 +720,8 @@ export const App: React.FC = () => {
             noBooking: undefined,
             namaPenyewa: undefined,
             tenggatKembali: undefined,
-            catatan: `Booking #${targetBooking.noBooking} dibatalkan operator`,
-            updatedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+            catatan: `Unit dibebaskan dari booking #${targetBooking.noBooking} (dibatalkan)`,
+            updatedAt: nowStr,
             updatedBy: db.settings.operatorName || 'Operator Ryoko',
           };
         }
@@ -686,8 +737,8 @@ export const App: React.FC = () => {
 
     updateDatabaseState(
       newDb,
-      'Batal Booking (D-20)',
-      `Pembatalan booking #${targetBooking.noBooking} oleh operator`
+      'Batal Booking (Soft-Cancel)',
+      `Pembatalan booking #${targetBooking.noBooking} (${targetBooking.nama}). Unit fisik dibebaskan.`
     );
   };
 

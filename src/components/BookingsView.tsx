@@ -128,6 +128,11 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
       stepNumber: '05',
       badgeClass: 'bg-slate-800/90 border-slate-700 text-slate-300',
     },
+    ryokou_dibatalkan: {
+      label: 'Dibatalkan',
+      stepNumber: 'X',
+      badgeClass: 'bg-rose-950/80 border-rose-800/80 text-rose-300',
+    },
   };
 
   return (
@@ -208,6 +213,16 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
             }`}
           >
             4. Selesai ({db.bookings.filter(b => b.status === 'ryokou_selesai').length})
+          </button>
+          <button
+            onClick={() => setActiveStatusFilter('ryokou_dibatalkan')}
+            className={`px-3 py-1.5 rounded-xl font-medium shrink-0 transition ${
+              activeStatusFilter === 'ryokou_dibatalkan'
+                ? 'bg-rose-900 text-white font-bold shadow-sm'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            Dibatalkan ({db.bookings.filter(b => b.status === 'ryokou_dibatalkan').length})
           </button>
         </div>
 
@@ -517,15 +532,25 @@ export const BookingsView: React.FC<BookingsViewProps> = ({
                       </>
                     )}
 
-                    {/* STATUS 2: APPROVED -> Serah Terima Unit */}
+                    {/* STATUS 2: APPROVED -> Serah Terima Unit atau Batal */}
                     {b.status === 'ryokou_approved' && (
-                      <button
-                        onClick={() => onOpenHandoverModal(b)}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950 transition active:scale-95"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Serah Terima (Mulai Sewa)</span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => onCancelBooking(b.id)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-950/50 transition flex items-center gap-1"
+                          title="Batalkan pesanan & lepas kunci unit"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Batalkan</span>
+                        </button>
+                        <button
+                          onClick={() => onOpenHandoverModal(b)}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950 transition active:scale-95"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>Serah Terima (Mulai Sewa)</span>
+                        </button>
+                      </>
                     )}
 
                     {/* STATUS 3: SEDANG DISEWA -> Tukar Unit (D-19), Masuk Servis (F-08), ATAU Selesai (D-27) */}

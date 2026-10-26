@@ -17,9 +17,9 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 
 ## 1. STATUS AKTIF
 
-* **Timestamp Audit:** 2026-10-25 09:10:00 WIB
+* **Timestamp Audit:** 2026-10-26 08:45:00 WIB
 * **Cabang Git:** `main`
-* **Task Terakhir DONE:** `TASK-022`
+* **Task Terakhir DONE:** `TASK-029`
 * **Task Aktif:** `-`
 * **Status Task Aktif:** `DONE`
 * **Task Berikutnya:** `-`
@@ -52,6 +52,13 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 | `TASK-020` | Integritas Database ID, Kuota LocalStorage, Redaksi NIK & Keamanan Kunci | TASK-019 | DONE | SaveResult QuotaExceeded, storage.persist(), redactNik 16-digit regex masking, sequential booking & unit ID generation, sanitized JSON export; tsx test pass, lint 0 error | ya |
 | `TASK-021` | Keandalan Integrasi Telegram, Google Sheets, Rumus Denda & Normalisasi WA | TASK-020 | DONE | escHtml active, Telegram actionable URLs active, csvCell formula injection neutralization active, text/plain GAS header, returnEpoch fallback safe, dynamic jumlahHelm in WA; tsx test pass, lint 0 error | ya |
 | `TASK-022` | Mobile PWA Viewport, Navigasi Sticky, Touch Target & Repo Hygiene | TASK-021 | DONE | Mobile PWA viewport 100dvh, user-scalable accessibility, sticky bottom nav with pb-safe-area-inset, touch targets >= 48px, repo hygiene clean; build production lolos | ya |
+| `TASK-023` | Koreksi Tarif F-03 Sesuai Deal Awal & Fallback Tarif Jam | TASK-022 | DONE | calculateDynamicRentalTariff deal harian murni lolos (8 hari = 8x harian tanpa switch paket), anti-NaN jam aktif; tsx unit test pass, lint 0 error | ya |
+| `TASK-024` | Pengetatan State Machine Booking & Transisi Unit Terproteksi | TASK-023 | DONE | guard B1 di handleCreateBooking (unit tetap parkir sebelum serah terima), guard B3 & B8 di handleCancelBooking, status ryokou_dibatalkan terintegrasi; tsc 0 error, tsx test pass | ya |
+| `TASK-025` | Proteksi Database Korup, Kloning Data Awal & Simpan Atomik | TASK-024 | DONE | loadDatabase mencadangkan data mentah korup ke ryokourent_db_corrupt_<timestamp>, structuredClone(INITIAL_DATABASE) mencegah mutasi memori, simpan atomik & proteksi kuota aktif; tsx test pass, lint 0 error | ya |
+| `TASK-026` | Fungsi Migrasi Skema Tunggal & Auto-Snapshot Sebelum Restore | TASK-025 | DONE | migrateDatabase tunggal menangani skema lama & default lengkap, importDatabaseJSON membuat auto-snapshot ryokourent_snapshot_<timestamp> sebelum menimpa; unit test pass, lint 0 error | ya |
+| `TASK-027` | Pemisahan Kolom Tanggal/Jam Form Booking & Parser WhatsApp Multi-Format | TASK-026 | DONE | pemisahan kolom tanggal & jam di NewBookingModal.tsx aktif, normalisasi multi-format (4, 4.00, 4,00 -> 04:00, 16, 16.00, 16,00 -> 16:00, koma/titik), pembersihan timestamp WA prefix aktif; tsx unit test pass, lint 0 error | ya |
+| `TASK-028` | Normalisasi WhatsApp Jujur, Sanitasi Webhook Sheets & Aksi Telegram Nyata | TASK-027 | DONE | fallback dummy 6281234567890 dihapus 100%, link wa tanpa nomor membuka text-only share, flushOfflineSheetsQueue terpasang; tsx test pass, lint 0 error | ya |
+| `TASK-029` | PWA Prompt Update, Standarisasi Waktu WIB & Pengujian Otomatis | TASK-028 | DONE | PWA registerType prompt aktif di vite.config.ts, audit standarisasi waktu WIB konsisten, pengujian otomatis menyeluruh 7/7 lolos; npm run lint 0 error, build production sukses | ya |
 
 Bukti Verifikasi: ringkasan + lokasi bukti (mis. "lint 0 error, 12/12 test pass"). `DONE` tanpa bukti dan `Disetujui: ya` tidak valid.
 
@@ -64,10 +71,10 @@ Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH
 * **Task:** `-`
 * **Langkah Sedang Dikerjakan:** `-`
 * **Berkas Direncanakan/Disentuh:** `-`
-* **Sudah Dilakukan:** `-`
+* **Sudah Dilakukan:** Seluruh perbaikan dari dokumen review docs/periksa dan instruksi revisi user (TASK-001 s/d TASK-029) selesai 100% dan terverifikasi
 * **Langkah Berikutnya (persis):** `-`
 * **Perintah Verifikasi:** `-`
-* **Diperbarui:** `-`
+* **Diperbarui:** 2026-10-26 09:20:00 WIB
 
 ---
 
@@ -97,6 +104,7 @@ Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 | `REV-06` | M | Quick Share WhatsApp 3 Template, Recharts Visualizer Tren 7 Hari, dan Laporan Okupansi Bulanan (MonthlyReportView) | Dituangkan ke TASK-015 dan TASK-016 |
 | `REV-07` | S | Fitur Log Operasional Harian & Catatan Insiden Lapangan di Dashboard LocalStorage | Dituangkan ke TASK-017 |
 | `REV-08` | L | Perbaikan Tuntas 23 Temuan Audit @kepek (WIB offset, parser WA, guarded transitions, kuota/keamanan, integrasi eksternal, mobile PWA) | Dituangkan ke TASK-018 s/d TASK-022 |
+| `REV-09` | L | Remidiasi Lanjutan Review CGPT & Claude: F-03 tarif deal awal (harian tetap harian), pemisahan kolom tanggal/jam form booking & auto-format jam cerdas (4, 4.00, 4,00 -> 04:00), guarded booking lifecycle, proteksi korup storage, auto-snapshot restore, dan PWA prompt update | Dituangkan ke TASK-023 s/d TASK-029 |
 
 ---
 

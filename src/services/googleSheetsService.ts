@@ -332,3 +332,48 @@ export async function bulkSyncBookingsToGoogleSheets(
     };
   }
 }
+
+/**
+ * Mengirim antrean offline ke Webhook Google Apps Script
+ */
+export async function flushOfflineSheetsQueue(
+  webhookUrl: string
+): Promise<{ success: boolean; flushedCount: number; message: string }> {
+  if (!webhookUrl || !webhookUrl.trim().startsWith('http')) {
+    return { success: false, flushedCount: 0, message: 'URL Webhook Google Sheets belum dikonfigurasi.' };
+  }
+  const existing = localStorage.getItem(OFFLINE_QUEUE_KEY);
+  if (!existing) {
+    return { success: true, flushedCount: 0, message: 'Tidak ada antrean offline.' };
+  }
+  let queue: GoogleSheetsRowData[] = [];
+  try {
+    queue = JSON.parse(existing);
+  } catch {
+    localStorage.removeItem(OFFLINE_QUEUE_KEY);
+    return { success: true, flushedCount: 0, message: 'Antrean korup dibersihkan.' };
+  }
+  if (!Array.isArray(queue) || queue.length === 0) {
+    return { success: true, flushedCount: 0, message: 'Antrean offline kosong.' };
+  }
+
+  try {
+    const res = await fetch(webhookUrl.trim(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'BULK_UPSERT',
+        count: queue.length,
+        rows: queue,
+      }),
+    });
+    if (!res.ok) {
+      return { success: false, flushedCount: 0, message: `Server Google Apps Script merespon ${res.status}.` };
+    }
+    localStorage.removeItem(OFFLINE_QUEUE_KEY);
+    return { success: true, flushedCount: queue.length, message: `Berhasil mengunggah ${queue.length} antrean data offline ke Google Sheets!` };
+  } catch (err) {
+    const errText = err instanceof Error ? err.message : 'Koneksi gagal';
+    return { success: false, flushedCount: 0, message: `Gagal mengirim antrean offline: ${errText}` };
+  }
+}

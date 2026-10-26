@@ -22,7 +22,12 @@ import {
   generateCourierTaskWhatsAppUrl,
   generateStandardBookingTemplateText,
 } from '../services/whatsappService';
-import { parseWhatsAppBookingChat, STANDARD_BOOKING_TEMPLATE_TEXT } from '../utils/whatsappChatParser';
+import {
+  parseWhatsAppBookingChat,
+  STANDARD_BOOKING_TEMPLATE_TEXT,
+  normalizeTimeInput,
+  normalizeDateInput,
+} from '../utils/whatsappChatParser';
 import { copyText } from '../utils/clipboard';
 import {
   X,
@@ -60,23 +65,31 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
   const selectedPackage = useMemo(() => db.packages.find(p => p.id === selectedPackageId), [db.packages, selectedPackageId]);
 
   // Dates default: today at 09:00 WIB until tomorrow 09:00 WIB (eksplisit Asia/Jakarta)
+  // User Directive: pisahkan kolom tanggal dan jam
   const defaultDates = useMemo(() => {
     const now = new Date();
-    const ymd = new Intl.DateTimeFormat('en-CA', {
+    const todayYmd = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Jakarta',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     }).format(now);
-    const startStr = `${ymd}T09:00`;
-    const startEpoch = parseWibToEpoch(startStr);
-    const endEpoch = startEpoch + 24 * 3600;
-    const endStr = epochToWibInput(endEpoch);
-    return { startStr, endStr };
+    const tomorrowYmd = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(now.getTime() + 24 * 3600 * 1000));
+    return { todayYmd, tomorrowYmd, defaultTime: '09:00' };
   }, []);
 
-  const [jamTanggalMulai, setJamTanggalMulai] = useState<string>(defaultDates.startStr);
-  const [jamTanggalSelesai, setJamTanggalSelesai] = useState<string>(defaultDates.endStr);
+  const [tglMulai, setTglMulai] = useState<string>(defaultDates.todayYmd);
+  const [jamMulai, setJamMulai] = useState<string>(defaultDates.defaultTime);
+  const [tglSelesai, setTglSelesai] = useState<string>(defaultDates.tomorrowYmd);
+  const [jamSelesai, setJamSelesai] = useState<string>(defaultDates.defaultTime);
+
+  const jamTanggalMulai = useMemo(() => `${tglMulai}T${jamMulai}`, [tglMulai, jamMulai]);
+  const jamTanggalSelesai = useMemo(() => `${tglSelesai}T${jamSelesai}`, [tglSelesai, jamSelesai]);
 
   // 13-Field Standard Booking State
   const [nama, setNama] = useState<string>('');
@@ -119,8 +132,16 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
     if (parsed.idSosmed) setIdSosmed(parsed.idSosmed);
     if (parsed.nomorWa) setNomorWa(parsed.nomorWa);
     if (parsed.teleponDarurat) setNoTelpDarurat(parsed.teleponDarurat);
-    if (parsed.jamTanggalMulai) setJamTanggalMulai(parsed.jamTanggalMulai);
-    if (parsed.jamTanggalSelesai) setJamTanggalSelesai(parsed.jamTanggalSelesai);
+    if (parsed.jamTanggalMulai) {
+      const [d, t] = parsed.jamTanggalMulai.split('T');
+      if (d) setTglMulai(normalizeDateInput(d));
+      if (t) setJamMulai(normalizeTimeInput(t));
+    }
+    if (parsed.jamTanggalSelesai) {
+      const [d, t] = parsed.jamTanggalSelesai.split('T');
+      if (d) setTglSelesai(normalizeDateInput(d));
+      if (t) setJamSelesai(normalizeTimeInput(t));
+    }
     if (parsed.lokasiDelivery) setAlamatPengantaran(parsed.lokasiDelivery);
     if (parsed.lokasiPengembalian) setAlamatPenjemputan(parsed.lokasiPengembalian);
     if (parsed.jumlahHelm) setJumlahHelm(parsed.jumlahHelm);
@@ -201,7 +222,10 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
     else if (dur === '1_bulan') hoursToAdd = 24 * 30; // 30 hari
 
     const endEp = startEp + hoursToAdd * 3600;
-    setJamTanggalSelesai(epochToWibInput(endEp));
+    const endIso = epochToWibInput(endEp);
+    const [d, t] = endIso.split('T');
+    if (d) setTglSelesai(d);
+    if (t) setJamSelesai(t);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -584,34 +608,80 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
               <span className="text-[11px] text-slate-400">Jeda Turnaround Buffer: 60 Menit</span>
             </div>
 
-            {/* Poin 8 & 9: Jadwal Mulai & Jadwal Selesai */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold mb-1 text-slate-200 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>8. Jadwal Mulai (Ambil / Delivery):</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  value={jamTanggalMulai}
-                  onChange={e => setJamTanggalMulai(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:border-cyan-500 outline-none"
-                  required
-                />
+            {/* Poin 8 & 9: Jadwal Mulai & Jadwal Selesai (Kolom Tanggal & Jam Terpisah - TASK-027) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {/* Poin 8: Jadwal Mulai */}
+              <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-200 flex items-center gap-1.5 text-cyan-300 font-bold">
+                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>8. Jadwal Mulai (Ambil / Delivery):</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">{tglMulai} {jamMulai} WIB</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="col-span-3">
+                    <span className="text-[10px] text-slate-400 block mb-0.5 font-medium">Tanggal Mulai:</span>
+                    <input
+                      type="date"
+                      value={tglMulai}
+                      onChange={e => setTglMulai(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-cyan-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-slate-400 block mb-0.5 font-medium">Jam (WIB):</span>
+                    <input
+                      type="text"
+                      value={jamMulai}
+                      onChange={e => setJamMulai(e.target.value)}
+                      onBlur={e => setJamMulai(normalizeTimeInput(e.target.value))}
+                      placeholder="09:00"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-cyan-500 outline-none"
+                      title="Contoh: 4, 4.00, 4,00, atau 04:00"
+                      required
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 italic">Bebas tulis jam: 4, 4.00, 4,00, atau 04:00</p>
               </div>
 
-              <div>
-                <label className="block font-semibold mb-1 text-slate-200 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  <span>9. Jadwal Selesai (Pengembalian):</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  value={jamTanggalSelesai}
-                  onChange={e => setJamTanggalSelesai(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:border-cyan-500 outline-none"
-                  required
-                />
+              {/* Poin 9: Jadwal Selesai */}
+              <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-200 flex items-center gap-1.5 text-amber-300 font-bold">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>9. Jadwal Selesai (Pengembalian):</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">{tglSelesai} {jamSelesai} WIB</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="col-span-3">
+                    <span className="text-[10px] text-slate-400 block mb-0.5 font-medium">Tanggal Selesai:</span>
+                    <input
+                      type="date"
+                      value={tglSelesai}
+                      onChange={e => setTglSelesai(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-cyan-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-slate-400 block mb-0.5 font-medium">Jam (WIB):</span>
+                    <input
+                      type="text"
+                      value={jamSelesai}
+                      onChange={e => setJamSelesai(e.target.value)}
+                      onBlur={e => setJamSelesai(normalizeTimeInput(e.target.value))}
+                      placeholder="09:00"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-cyan-500 outline-none"
+                      title="Contoh: 4, 4.00, 4,00, atau 04:00"
+                      required
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 italic">Bebas tulis jam: 4, 4.00, 4,00, atau 04:00</p>
               </div>
             </div>
 

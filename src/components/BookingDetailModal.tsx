@@ -115,6 +115,12 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
       text: 'text-emerald-300',
       border: 'border-emerald-700/80',
     },
+    ryokou_dibatalkan: {
+      label: 'Dibatalkan',
+      bg: 'bg-rose-950/80',
+      text: 'text-rose-300',
+      border: 'border-rose-700/80',
+    },
   };
 
   const statusInfo = statusConfig[booking.status] || statusConfig.ryokou_booking;

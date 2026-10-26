@@ -7,25 +7,32 @@ import {
 import { formatRupiah } from './bookingEngine';
 
 /**
- * Normalisasi nomor HP ke format internasional WhatsApp (628xxx)
+/**
+ * Normalisasi nomor HP ke format internasional WhatsApp (628xxx) tanpa fallback nomor palsu
  */
 export function normalizeWhatsAppNumber(phone: string): string {
-  if (!phone) return '6281234567890';
+  if (!phone) return '';
   let clean = phone.replace(/[^0-9]/g, '');
   if (clean.startsWith('08')) {
-    clean = '62' + clean.slice(1);
+    clean = '628' + clean.slice(2);
+  } else if (clean.startsWith('8')) {
+    clean = '628' + clean.slice(1);
   } else if (!clean.startsWith('62') && clean.length > 5) {
     clean = '62' + clean;
   }
-  return clean || '6281234567890';
+  return clean;
 }
 
 /**
  * Tautan WhatsApp generik dari nomor dan teks
+ * Jika nomor kosong, buat tautan share WhatsApp tanpa target nomor dummy
  */
 export function generateWhatsAppLink(phone: string, text: string): string {
   const target = normalizeWhatsAppNumber(phone);
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(target)}&text=${encodeURIComponent(text)}`;
+  if (target) {
+    return `https://api.whatsapp.com/send?phone=${encodeURIComponent(target)}&text=${encodeURIComponent(text)}`;
+  }
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
 }
 
 /**
@@ -84,7 +91,7 @@ export function generateBookingConfirmationWhatsAppUrl(
   lines.push('Mohon konfirmasi kesiapan unit. Terima kasih!');
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(targetPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(targetPhone, message);
 }
 
 /**
@@ -110,7 +117,7 @@ export function generateApprovalNoticeToCustomerWhatsAppUrl(booking: BookingReco
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -134,7 +141,7 @@ export function generateHandoverNoticeToCustomerWhatsAppUrl(booking: BookingReco
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -173,7 +180,7 @@ export function generateReturnReceiptWhatsAppUrl(
   lines.push('Sampai jumpa di liburan Anda berikutnya di Malang & Kota Batu! 🙏⭐');
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -201,7 +208,7 @@ export function generateUnitExchangeNoticeWhatsAppUrl(
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -232,7 +239,7 @@ export function generateCourierTaskWhatsAppUrl(
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(targetPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(targetPhone, message);
 }
 
 /**
@@ -256,7 +263,7 @@ export function generateMonthlyInvoiceWhatsAppUrl(booking: BookingRecord): strin
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -279,7 +286,7 @@ export function generateDueReminderWhatsAppUrl(booking: BookingRecord): string {
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -329,7 +336,7 @@ export function generateGradedDueReminderWhatsAppUrl(
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(customerPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(customerPhone, message);
 }
 
 /**
@@ -354,7 +361,7 @@ export function generateServiceDoneWhatsAppUrl(service: ServiceRecord, adminPhon
   ];
 
   const message = lines.join('\n');
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(targetPhone)}&text=${encodeURIComponent(message)}`;
+  return generateWhatsAppLink(targetPhone, message);
 }
 
 /**
@@ -386,7 +393,7 @@ _Kirimkan format yang sudah diisi ke admin Ryoko Rent Malang & Batu_`;
 export function generateEmptyBookingFormWhatsAppUrl(phone: string): string {
   const targetPhone = normalizeWhatsAppNumber(phone);
   const text = generateStandardBookingTemplateText();
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(targetPhone)}&text=${encodeURIComponent(text)}`;
+  return generateWhatsAppLink(targetPhone, text);
 }
 
 /* -------------------------------------------------------------------------- */

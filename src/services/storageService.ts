@@ -5,51 +5,95 @@ export const STORAGE_KEY = 'ryokourent_db_v1';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
-export function loadDatabase(): RyokoDatabase {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      saveDatabase(INITIAL_DATABASE);
-      return INITIAL_DATABASE;
-    }
-    const parsed = JSON.parse(raw) as RyokoDatabase;
-    if (!parsed.motors || !parsed.units || !parsed.bookings) {
-      saveDatabase(INITIAL_DATABASE);
-      return INITIAL_DATABASE;
-    }
-    // Auto-migrate settings if missing
-    if (!parsed.settings) {
-      parsed.settings = { ...INITIAL_DATABASE.settings };
-    } else {
-      parsed.settings = { ...INITIAL_DATABASE.settings, ...parsed.settings };
-    }
-    // Auto-migrate serviceRecords if missing
-    if (!parsed.serviceRecords) {
-      parsed.serviceRecords = INITIAL_DATABASE.serviceRecords || [];
-    }
-    // Auto-migrate dailyOperationalLogs if missing
-    if (!parsed.dailyOperationalLogs || !Array.isArray(parsed.dailyOperationalLogs)) {
-      parsed.dailyOperationalLogs = INITIAL_DATABASE.dailyOperationalLogs || [];
-    }
-    // Auto-migrate users if missing
-    if (!parsed.users || !Array.isArray(parsed.users) || parsed.users.length === 0) {
-      parsed.users = INITIAL_DATABASE.users || [];
-    }
-    if (!parsed.currentUserId) {
-      parsed.currentUserId = INITIAL_DATABASE.currentUserId || 'usr-admin';
-    }
-    // Ensure monthly price exists
-    parsed.motors = parsed.motors.map(m => {
-      if ((m as unknown as { harga2Minggu?: number }).harga2Minggu && !m.harga1Bulan) {
-        m.harga1Bulan = Math.round((m.harga1Hari * 22) / 1000) * 1000;
-      }
-      return m;
-    });
+/**
+ * Fungsi migrasi skema tunggal (Single Source of Migration Truth)
+ * Memastikan semua field, default value, dan konversi format schema versi lama
+ * terpenuhi secara konsisten saat loadDatabase maupun importDatabaseJSON.
+ */
+export function migrateDatabase(rawDb: unknown): RyokoDatabase {
+  const initial = structuredClone(INITIAL_DATABASE);
+  if (!rawDb || typeof rawDb !== 'object') {
+    return initial;
+  }
 
-    return parsed;
+  const db = rawDb as Partial<RyokoDatabase>;
+
+  // Check required collections
+  const motors = Array.isArray(db.motors) && db.motors.length > 0 ? db.motors : initial.motors;
+  const units = Array.isArray(db.units) && db.units.length > 0 ? db.units : initial.units;
+  const bookings = Array.isArray(db.bookings) ? db.bookings : initial.bookings;
+  const packages = Array.isArray(db.packages) && db.packages.length > 0 ? db.packages : initial.packages;
+  const tracking = Array.isArray(db.tracking) ? db.tracking : initial.tracking;
+
+  // Settings
+  const settings = {
+    ...initial.settings,
+    ...(db.settings || {}),
+  };
+
+  // Service records
+  const serviceRecords = Array.isArray(db.serviceRecords) ? db.serviceRecords : (initial.serviceRecords || []);
+
+  // Daily operational logs
+  const dailyOperationalLogs = Array.isArray(db.dailyOperationalLogs) ? db.dailyOperationalLogs : (initial.dailyOperationalLogs || []);
+
+  // Users & current user
+  const users = Array.isArray(db.users) && db.users.length > 0 ? db.users : (initial.users || []);
+  const currentUserId = typeof db.currentUserId === 'string' && db.currentUserId ? db.currentUserId : (initial.currentUserId || 'usr-admin');
+
+  // Ensure monthly price exists for motor models (migration from older schemas)
+  const migratedMotors = motors.map(m => {
+    if ((m as unknown as { harga2Minggu?: number }).harga2Minggu && !m.harga1Bulan) {
+      return {
+        ...m,
+        harga1Bulan: Math.round(((m.harga1Hari || 85000) * 22) / 1000) * 1000,
+      };
+    }
+    return m;
+  });
+
+  return {
+    version: db.version || initial.version || '1.0.0',
+    motors: migratedMotors,
+    units,
+    bookings,
+    packages,
+    tracking,
+    settings,
+    serviceRecords,
+    dailyOperationalLogs,
+    users,
+    currentUserId,
+    lastUpdated: db.lastUpdated || new Date().toISOString(),
+  };
+}
+
+export function loadDatabase(): RyokoDatabase {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const initial = structuredClone(INITIAL_DATABASE);
+      saveDatabase(initial);
+      return initial;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    return migrateDatabase(parsed);
   } catch (error) {
     console.error('Failed to load database from LocalStorage:', error);
-    return INITIAL_DATABASE;
+    // Simpan data mentah korup ke key cadangan darurat agar tidak terhapus permanen
+    if (raw) {
+      try {
+        const corruptKey = `ryokourent_db_corrupt_${Date.now()}`;
+        localStorage.setItem(corruptKey, raw);
+        console.warn(`Data mentah korup dicadangkan ke LocalStorage key: ${corruptKey}`);
+      } catch (backupErr) {
+        console.error('Gagal mencadangkan data korup:', backupErr);
+      }
+    }
+    const fallback = structuredClone(INITIAL_DATABASE);
+    saveDatabase(fallback);
+    return fallback;
   }
 }
 
@@ -59,7 +103,8 @@ export function loadDatabase(): RyokoDatabase {
 export function saveDatabase(db: RyokoDatabase): SaveResult {
   try {
     db.lastUpdated = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    const serialized = JSON.stringify(db);
+    localStorage.setItem(STORAGE_KEY, serialized);
     return { ok: true };
   } catch (error) {
     const isQuota =
@@ -74,8 +119,9 @@ export function saveDatabase(db: RyokoDatabase): SaveResult {
 }
 
 export function resetDatabaseToDefault(): RyokoDatabase {
-  saveDatabase(INITIAL_DATABASE);
-  return INITIAL_DATABASE;
+  const cloned = structuredClone(INITIAL_DATABASE);
+  saveDatabase(cloned);
+  return cloned;
 }
 
 /**
@@ -91,21 +137,38 @@ export function exportDatabaseJSON(includeSecrets = false): string {
 }
 
 /**
- * Impor database dari string JSON dengan validasi skema dasar dan merge settings (F-19)
+ * Impor database dari string JSON dengan validasi skema, auto-snapshot, dan migrasi terpadu (F-19)
  */
 export function importDatabaseJSON(jsonStr: string): { success: boolean; message: string; db?: RyokoDatabase } {
   try {
-    const parsed = JSON.parse(jsonStr) as RyokoDatabase;
-    if (!parsed.motors || !Array.isArray(parsed.motors) || !parsed.units || !parsed.bookings) {
+    const parsed = JSON.parse(jsonStr) as unknown;
+    if (!parsed || typeof parsed !== 'object') {
       return { success: false, message: 'Format file JSON tidak valid untuk database RyokoRent.' };
     }
-    parsed.settings = { ...INITIAL_DATABASE.settings, ...(parsed.settings || {}) };
-    parsed.lastUpdated = new Date().toISOString();
-    const result = saveDatabase(parsed);
+    const dbObj = parsed as Partial<RyokoDatabase>;
+    if (!dbObj.motors && !dbObj.units && !dbObj.bookings) {
+      return { success: false, message: 'Format file JSON tidak memiliki struktur database RyokoRent yang sesuai.' };
+    }
+
+    // Auto-Snapshot database berjalan sebelum menimpa data baru
+    try {
+      const currentRaw = localStorage.getItem(STORAGE_KEY);
+      if (currentRaw) {
+        const snapshotKey = `ryokourent_snapshot_${Date.now()}`;
+        localStorage.setItem(snapshotKey, currentRaw);
+        console.info(`Auto-snapshot database dibuat sebelum restore: ${snapshotKey}`);
+      }
+    } catch (snapErr) {
+      console.warn('Gagal membuat auto-snapshot sebelum restore:', snapErr);
+    }
+
+    const migrated = migrateDatabase(parsed);
+    migrated.lastUpdated = new Date().toISOString();
+    const result = saveDatabase(migrated);
     if (!result.ok) {
       return { success: false, message: result.message };
     }
-    return { success: true, message: 'Database berhasil dipulihkan dari file cadangan.', db: parsed };
+    return { success: true, message: 'Database berhasil dipulihkan dari file cadangan.', db: migrated };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Kesalahan parsing JSON';
     return { success: false, message: `Gagal memulihkan database: ${errorMsg}` };
