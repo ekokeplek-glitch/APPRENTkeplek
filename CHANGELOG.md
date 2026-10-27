@@ -4,6 +4,17 @@ Semua perubahan penting pada proyek ini dicatat dalam berkas ini.
 Format berbasis [Keep a Changelog](https://keepachangelog.com/id/1.1.0/),
 dan proyek ini menganut [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Ditambahkan
+- Pendaftaran revisi REV-10 (Level L) arsitektur sinkronisasi multi-perangkat: `TASK-REV-10` pada `TASKS.md`, ASM/Q baru (`ASM-04`..`ASM-23`, `Q-06`..`Q-26`) pada `SESSION_STATE.md`.
+- `docs/SYNC_ARCHITECTURE.md`: rancangan konseptual peran dan akses, diagram, alur online/offline/sinkron, konflik, keamanan, batasan LocalStorage, dan perbandingan opsi gratis. Hanya dokumentasi; belum ada perubahan kode.
+- `AI_WORKFLOW.md` dipulihkan dari `templates/AI_WORKFLOW.template.md` (berkas asli hilang dari arsip).
+
+### Diubah
+- `TASK-REV-10` selesai dan disetujui; `Q-26` diterapkan ("Servis" = `ryokou_diservis`).
+- `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md`: catatan arsitektur target REV-10 dan penyelarasan NFR-01.
+
 ## [3.5.0] - 2026-10-26
 
 ### Ditambahkan

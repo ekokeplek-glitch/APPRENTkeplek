@@ -20,6 +20,7 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
 * **FASE 11: Integritas Tarif Deal Awal & State Machine Booking** (`TASK-023`, `TASK-024`)
 * **FASE 12: Keandalan Penyimpanan, Pemulihan Data & Migrasi Skema** (`TASK-025`, `TASK-026`)
 * **FASE 13: Pemisahan Kolom Tanggal/Jam, Parser WA, Integrasi & PWA** (`TASK-027`, `TASK-028`, `TASK-029`)
+* **FASE 14: Arsitektur Sinkronisasi Multi-Perangkat** (`TASK-REV-10`)
 
 ---
 
@@ -493,3 +494,18 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
 * **Test Case:** PWA update strategy, timezone audit & test suite run
 * **Metode Verifikasi:** Jalankan `npm run lint`, `npm run build`, dan `python3 scripts/zlce/zlce-check.py .`.
 
+### TASK-REV-10: Arsitektur Sinkronisasi Multi-Perangkat (Google Sheets sebagai Sumber Acuan): Rancangan & Dokumentasi
+* **Fase:** FASE 14
+* **Deskripsi:** Menuangkan keputusan revisi REV-10 ke dokumen rancangan: peran Admin, Operator, dan kurir tanpa PWA; gerbang Apps Script dengan Google Sheets sebagai sumber acuan; alur online, offline terbatas, dan sinkron kembali; kebijakan konflik, duplikat, dan kegagalan jaringan; autentikasi, pembatasan akses, dan perlindungan data; batasan LocalStorage dan Google Sheets; serta perbandingan dengan alternatif gratis. Hanya dokumentasi; tidak ada perubahan kode. Implementasi didaftarkan sebagai task terpisah setelah persetujuan pengguna.
+* **Dependensi:** `TASK-029`
+* **File:** `docs/SYNC_ARCHITECTURE.md` (baru), `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md`
+* **Docs Terkait:** `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md`, `SESSION_STATE.md` (bagian 4: ASM/Q)
+* **Docs Impact:** `docs/SYNC_ARCHITECTURE.md`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md`, `CHANGELOG.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. `docs/SYNC_ARCHITECTURE.md` memuat matriks akses per peran, diagram arsitektur teks, alur online/offline/sinkron, kebijakan konflik dan duplikat, keamanan, serta batasan LocalStorage dan Google Sheets, dan seluruhnya selaras dengan ASM/Q di `SESSION_STATE.md` bagian 4.
+  2. Tidak ada ASM/Q terkait berstatus `OPEN` (termasuk `Q-25`), dan dokumen terdampak tidak saling bertentangan.
+  3. Tidak ada berkas di `src/` yang berubah.
+* **Test Case:** Konsistensi dokumen rancangan terhadap ASM/Q dan daftar berkas berubah
+* **Metode Verifikasi:** Jalankan `python3 scripts/zlce/zlce-check.py .` dan tinjau daftar berkas berubah (tidak ada di `src/`); persetujuan pengguna wajib sebelum `DONE`.
+
+---

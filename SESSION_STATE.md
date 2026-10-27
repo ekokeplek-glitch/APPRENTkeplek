@@ -17,9 +17,9 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 
 ## 1. STATUS AKTIF
 
-* **Timestamp Audit:** 2026-10-26 08:45:00 WIB
+* **Timestamp Audit:** 2026-10-27 10:06:06 WIB
 * **Cabang Git:** `main`
-* **Task Terakhir DONE:** `TASK-029`
+* **Task Terakhir DONE:** `TASK-REV-10`
 * **Task Aktif:** `-`
 * **Status Task Aktif:** `DONE`
 * **Task Berikutnya:** `-`
@@ -59,6 +59,7 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 | `TASK-027` | Pemisahan Kolom Tanggal/Jam Form Booking & Parser WhatsApp Multi-Format | TASK-026 | DONE | pemisahan kolom tanggal & jam di NewBookingModal.tsx aktif, normalisasi multi-format (4, 4.00, 4,00 -> 04:00, 16, 16.00, 16,00 -> 16:00, koma/titik), pembersihan timestamp WA prefix aktif; tsx unit test pass, lint 0 error | ya |
 | `TASK-028` | Normalisasi WhatsApp Jujur, Sanitasi Webhook Sheets & Aksi Telegram Nyata | TASK-027 | DONE | fallback dummy 6281234567890 dihapus 100%, link wa tanpa nomor membuka text-only share, flushOfflineSheetsQueue terpasang; tsx test pass, lint 0 error | ya |
 | `TASK-029` | PWA Prompt Update, Standarisasi Waktu WIB & Pengujian Otomatis | TASK-028 | DONE | PWA registerType prompt aktif di vite.config.ts, audit standarisasi waktu WIB konsisten, pengujian otomatis menyeluruh 7/7 lolos; npm run lint 0 error, build production sukses | ya |
+| `TASK-REV-10` | Arsitektur Sinkronisasi Multi-Perangkat (Google Sheets sebagai Sumber Acuan): Rancangan & Dokumentasi | TASK-029 | DONE | AC1: docs/SYNC_ARCHITECTURE.md selaras dengan ASM/Q (Q-26 diterapkan); AC2: tidak ada ASM/Q OPEN (zlce-check 0 item OPEN), dokumen terdampak (GOOGLE_SHEETS_INTEGRATION, TELEGRAM_BOT_INTEGRATION, SECURITY, BLUEPRINT, CHANGELOG) selaras; AC3: diff -rq terhadap arsip asli, src/ identik; zlce-check 0 error, 0 warn, 30 task | ya |
 
 Bukti Verifikasi: ringkasan + lokasi bukti (mis. "lint 0 error, 12/12 test pass"). `DONE` tanpa bukti dan `Disetujui: ya` tidak valid.
 
@@ -71,10 +72,10 @@ Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH
 * **Task:** `-`
 * **Langkah Sedang Dikerjakan:** `-`
 * **Berkas Direncanakan/Disentuh:** `-`
-* **Sudah Dilakukan:** Seluruh perbaikan dari dokumen review docs/periksa dan instruksi revisi user (TASK-001 s/d TASK-029) selesai 100% dan terverifikasi
+* **Sudah Dilakukan:** `TASK-REV-10` selesai dan disetujui pengguna; rancangan arsitektur sinkronisasi terdokumentasi di `docs/SYNC_ARCHITECTURE.md`; implementasi belum didaftarkan
 * **Langkah Berikutnya (persis):** `-`
 * **Perintah Verifikasi:** `-`
-* **Diperbarui:** 2026-10-26 09:20:00 WIB
+* **Diperbarui:** 2026-10-27 10:06:06 WIB
 
 ---
 
@@ -87,6 +88,29 @@ Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH
 | `ASM-03` | Asumsi | Posisi armada mencakup Pool Malang, Pool Batu, Servis, dan Dipakai Kurir (disertai nama kurir) | Alokasi armada tidak terdata | CONFIRMED |
 | `Q-01` | Pertanyaan | Apakah filter rekapitulasi laporan omset per rentang tanggal kustom diperlukan? | YA, diimplementasikan di Dashboard | ANSWERED |
 | `Q-02` | Pertanyaan | Apakah jumlah unit armada motor akan terus bertambah dinamis? | YA, struktur unit fisik dirancang tanpa batas kaku | ANSWERED |
+| `ASM-04` | Asumsi | Satu perangkat satu akun (Admin, Operator). Kurir tidak memakai PWA sehingga tidak punya akun aplikasi (lihat Q-16) | Akun bersama menghilangkan jejak audit per orang | CONFIRMED |
+| `ASM-05` | Asumsi | 25 unit motor; booking di bawah 20 per hari | Kuota dan performa Apps Script perlu ditinjau ulang bila volume naik | CONFIRMED |
+| `Q-06` | Pertanyaan | Apakah akun Google tersedia dan backend gratis tanpa kartu kredit dapat dikelola? Jawab: YA | Pilihan backend harus diganti | ANSWERED |
+| `Q-07` | Pertanyaan | Apakah `admin_custom` masuk lingkup? Jawab: ya, dibatasi pada operasional dan pengiriman (tafsiran) | Izin `admin_custom` terlalu luas atau sempit | ANSWERED |
+| `Q-08` | Pertanyaan | Apakah membuat dan menyetujui booking wajib online? Jawab: YA | Konflik jadwal dari penulisan offline | ANSWERED |
+| `Q-09` | Pertanyaan | Apa yang dibutuhkan kurir di aplikasi? Jawab: tidak perlu; surat tugas ambil/antar dan kwitansi paperless dikirim ke grup WA, kurir melapor serah terima di grup WA ke operator/admin | Status serah terima tertunda bila operator/admin tidak memperbarui | ANSWERED |
+| `Q-10` | Pertanyaan | Interval sinkronisasi? Jawab: polling 60 detik cukup | Realtime dibutuhkan bila salah | ANSWERED |
+| `Q-11` | Pertanyaan | Retensi data? Jawab: data penyewa disimpan; foto dihapus 7 hari setelah motor kembali (direvisi oleh Q-15) | Kebijakan retensi tidak terpenuhi | ANSWERED |
+| `Q-12` | Pertanyaan | Sumber acuan data bila perangkat berbeda? Jawab: Google Sheets | Pemilihan sumber kebenaran salah | ANSWERED |
+| `Q-13` | Pertanyaan | Peran Telegram? Jawab: alert ke operator dan kurir agar menghubungi customer | Penerima alert salah | ANSWERED |
+| `ASM-14` | Asumsi | Offline hanya baca-saja. Ditolak: tulis offline dibutuhkan (lihat Q-20) | Antrean tulis offline harus ada | REJECTED |
+| `Q-15` | Pertanyaan | Penyimpanan foto? Jawab: PWA tidak menyimpan foto sama sekali; foto identitas dan kondisi unit diambil saat serah terima dan dikirim kurir ke grup WA. Retensi foto di luar kendali sistem | Kebijakan retensi foto tidak dapat ditegakkan sistem | ANSWERED |
+| `Q-16` | Pertanyaan | Perangkat kurir? Jawab: cukup WhatsApp, PWA opsional | Akun dan akses kurir di backend | ANSWERED |
+| `Q-17` | Pertanyaan | Penerima Telegram? Jawab: chat pribadi, boleh memuat nama dan nomor WA penyewa | Data pribadi penyewa terkirim ke pihak ketiga | ANSWERED |
+| `Q-18` | Pertanyaan | Apakah Sheets diedit langsung? Jawab: tidak | Edit langsung melewati validasi | ANSWERED |
+| `Q-19` | Pertanyaan | Siapa memotret foto serah terima? Jawab: kurir, dikirim ke grup WA | Alur bukti sengketa | ANSWERED |
+| `Q-20` | Pertanyaan | Tulis offline apa saja? Jawab: catatan servis, log operasional, update posisi unit; tidak ada lainnya | Cakupan antrean offline | ANSWERED |
+| `Q-21` | Pertanyaan | Konfirmasi tafsiran Q-15, Q-17, Q-18? Jawab: Q-17 dan Q-18 benar; Q-15 direvisi | Tafsiran salah | ANSWERED |
+| `ASM-22` | Asumsi | Posisi unit "disewa" dan "diservis" memengaruhi bentrok jadwal; posisi lain tidak. Pool hanya tempat parkir; semua unit dikendalikan dari Pool Dinoyo | Aturan bentrok pada sinkronisasi offline salah | CONFIRMED |
+| `ASM-23` | Asumsi | Offline hanya untuk membuat entri baru (servis, log) dan memperbarui posisi unit; edit/hapus entri lama wajib online | Konflik edit offline | CONFIRMED |
+| `Q-24` | Pertanyaan | Risiko foto di grup WA dan UU PDP? Jawab: topik ditutup oleh pemilik, tidak dibahas lanjut | Risiko data pribadi di luar sistem | ANSWERED |
+| `Q-25` | Pertanyaan | Apakah ASM-03 (Pool Malang, Pool Batu, Servis, Dipakai Kurir) masih berlaku atau digantikan ASM-22? Jawab: ASM-03 masih berlaku untuk lacak unit dan operasional, TIDAK untuk menentukan bentrok booking | Daftar posisi/lokasi unit tidak selaras | ANSWERED |
+| `Q-26` | Pertanyaan | Pembacaan atas jawaban Q-25 (usulan AI): (a) "disewa" dan "diservis" pada ASM-22 = status booking (`ryokou_disewa`, `ryokou_diservis`) yang ikut menentukan bentrok, sedangkan posisi pelacakan ASM-03 (termasuk "Servis") tidak; (b) ASM-01 tidak lagi berlaku untuk data bersama: sumber acuan Sheets, cache baca dan Outbox di IndexedDB, LocalStorage hanya preferensi UI non-rahasia. Jawab: (a) "Servis" sama dengan `ryokou_diservis`, pakai `ryokou_diservis` saja; (b) Ya, setuju | Aturan bentrok saat sinkron dan lokasi penyimpanan klien salah | ANSWERED |
 
 Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 
@@ -105,25 +129,32 @@ Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 | `REV-07` | S | Fitur Log Operasional Harian & Catatan Insiden Lapangan di Dashboard LocalStorage | Dituangkan ke TASK-017 |
 | `REV-08` | L | Perbaikan Tuntas 23 Temuan Audit @kepek (WIB offset, parser WA, guarded transitions, kuota/keamanan, integrasi eksternal, mobile PWA) | Dituangkan ke TASK-018 s/d TASK-022 |
 | `REV-09` | L | Remidiasi Lanjutan Review CGPT & Claude: F-03 tarif deal awal (harian tetap harian), pemisahan kolom tanggal/jam form booking & auto-format jam cerdas (4, 4.00, 4,00 -> 04:00), guarded booking lifecycle, proteksi korup storage, auto-snapshot restore, dan PWA prompt update | Dituangkan ke TASK-023 s/d TASK-029 |
+| `REV-10` | L | Arsitektur sinkronisasi multi-perangkat: PWA Admin dan Operator berbagi sumber acuan Google Sheets lewat gerbang Apps Script; kurir tanpa PWA (WhatsApp dan Telegram); polling 60 detik; tulis offline terbatas (catatan servis, log operasional, posisi unit) via Outbox IndexedDB; foto tidak disimpan di PWA | Dituangkan ke TASK-REV-10 (rancangan dan dokumentasi). Implementasi belum didaftarkan |
 
 ---
 
 ## 6. CATATAN SERAH TERIMA (ditimpa; maks. ~10 baris)
 
-* 2026-10-24: Seluruh 17 task pengembangan ZLCE (TASK-001 s/d TASK-017) telah selesai 100% dan teruji lolos build & lint.
-* 2026-10-24: Fitur Log Operasional Harian & Insiden Lapangan (DailyOperationalLogSection) aktif di DashboardView dengan LocalStorage persistence (TASK-017).
-* 2026-10-24: Modal detail transaksi & fitur Quick Share WhatsApp 3 template (Konfirmasi, Pengingat, Terima Kasih) aktif (TASK-015).
-* 2026-10-24: Visual analytics tren pendapatan 7 hari (Recharts Area & Bar) aktif pada DashboardView (TASK-016).
-* 2026-10-24: Komponen MonthlyReportView dengan kalkulasi okupansi armada bulanan & grafik ComposedChart aktif di tab Laporan (TASK-016).
-* 2026-10-24: Layanan Google Sheets 26 kolom (13-field + review, opsi, aksi), ekspor CSV & webhook aktif (TASK-013).
-* 2026-10-24: Bot Telegram return alert (H-2, H-1, overdue) dengan 4 tombol inline action terpasang (TASK-014).
-* 2026-10-24: Konfigurasi ESM modern import.meta.dirname bersih tanpa warning pada vite.config.ts.
-* 2026-10-24: Aplikasi siap operasional penuh untuk Ryoko Rent Malang & Batu.
+* TASK-001 s/d TASK-029 dan `TASK-REV-10` DONE. Tidak ada task aktif. REV-10 hanya berupa rancangan dokumen; **belum ada kode** untuk arsitektur sinkronisasi.
+* Keputusan: Google Sheets via gerbang Apps Script sebagai sumber acuan; PWA Admin dan Operator (1 akun per perangkat); kurir tanpa PWA (WhatsApp dan Telegram pribadi); polling 60 detik. Rincian: `docs/SYNC_ARCHITECTURE.md`.
+* Booking dibuat/disetujui wajib online. Tulis offline hanya catatan servis, log operasional, update posisi unit pelacakan (Outbox IndexedDB); edit/hapus entri lama dan transisi status wajib online.
+* Bentrok: jadwal + buffer 60 menit + status `ryokou_disewa` dan `ryokou_diservis`. "Servis" = `ryokou_diservis` (istilah tunggal). Pool Malang, Pool Batu, Dipakai Kurir hanya untuk lacak unit dan operasional.
+* `ASM-01` tidak berlaku untuk data bersama (cache/Outbox di IndexedDB). `BLUEPRINT.md` NFR-01 direvisi untuk mode multi-perangkat.
+* Foto tidak disimpan di PWA; kurir mengirim foto ke grup WA (retensi di luar sistem; topik ditutup pemilik).
+* Kondisi kode masih satu perangkat (LocalStorage, Quick Switcher, webhook satu arah); daftar selisih di `docs/SYNC_ARCHITECTURE.md` bagian 12.
+* `AI_WORKFLOW.md` dipulihkan dari `templates/` (bukan salinan asli).
+* Implementasi belum didaftarkan; pecah ke task baru atas permintaan pengguna.
+* Entri lama bertanda "jam: ?" sengaja tidak diubah; entri terbaru memakai jam sistem kontainer (WIB).
 
 ---
 
 ## 7. LOG AUDIT (terbaru di atas; arsipkan entri lama ke `docs/archive/`)
 
+* **2026-10-27 10:06:06 WIB:** `TASK-REV-10` DONE atas persetujuan eksplisit pengguna ("Disetujui TASK-REV-10 DONE"). `Q-26` dijawab: "Servis" = `ryokou_diservis` (istilah tunggal), `ASM-01` tidak berlaku untuk data bersama; diterapkan ke `docs/SYNC_ARCHITECTURE.md` (bagian 1, 4, 5, 9, 11) dan `BLUEPRINT.md`. Bukti: `src/` identik terhadap arsip asli; zlce-check 0 error, 0 warn, 30 task, tidak ada ASM/Q OPEN. Tidak ada commit (bukan repositori git).
+* **2026-10-27 09:57:53 WIB:** `TASK-REV-10` dikerjakan: `docs/SYNC_ARCHITECTURE.md` ditulis; `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md` (modul M-13, NFR-01, bagian 6), `CHANGELOG.md` diselaraskan. Bukti: `diff -rq` terhadap arsip asli menunjukkan `src/` identik; zlce-check 0 error, 0 warn, 30 task. Status tetap IN_PROGRESS: `Q-26` OPEN dan persetujuan `DONE` belum ada. Tidak ada commit (bukan repositori git).
+* **2026-10-27 09:55:44 WIB:** PEMULIHAN BERKAS KONTROL atas permintaan pengguna: `AI_WORKFLOW.md` (hilang dari arsip) dibuat ulang dari `templates/AI_WORKFLOW.template.md` (identik dengan salinan di `ZLCE_KIT_SINGLE.md`; hanya placeholder nama proyek diisi). Isi asli yang hilang tidak dapat dipulihkan; isi berasal dari template baku.
+* **2026-10-27 09:55:44 WIB:** `Q-25` dijawab pengguna, `Q-26` dicatat (OPEN). `TASK-REV-10` READY ke IN_PROGRESS atas perintah pengguna ("kerjakan TASK-REV-10"). Jam diambil dari jam sistem kontainer (WIB) atas permintaan "tulis jam sekarang".
+* **2026-10-27 jam: ?:** REV-10 (Level L) didaftarkan atas persetujuan pengguna: ASM-04/05/14/22/23 dan Q-06..Q-25 dicatat (Q-25 OPEN), TASK-REV-10 dibuat (READY), CHANGELOG [Unreleased] diperbarui. Tanpa perubahan kode, tanpa commit. Cek ketergantungan: tidak ada task belum DONE, tidak ada task aktif untuk dijeda.
 * **2026-10-26 10:15:00 WIB:** Sinkronisasi dokumentasi standar dan ketentuan baru; Seluruh standar ketentuan baru (kepatuhan tarif deal awal F-03 P0, pemisahan kolom tanggal & jam, normalisasi jam fleksibel, state machine 6 status soft-cancel, corrupt DB backup, auto-snapshot restore, honest WhatsApp links, dan PWA prompt mode) resmi didokumentasikan di `BLUEPRINT.md`, `README.md`, `CHANGELOG.md`, `docs/REVIEW_ACTION_PLAN.md`, `docs/USAGE.md`, `docs/CLAUDE_PROMPT.md`, dan `docs/CLAUDE_REVIEW_GUIDE.md`.
 * **2026-10-26 08:45:00 WIB:** TASK-029 selesai; Pengujian otomatis komprehensif 7/7 lolos (tarif deal harian, status unit parkir, soft cancel, corrupt db backup, auto snapshot import, normalizer jam/tanggal, wa honest link), PWA update mode prompt terkonfigurasi di vite.config.ts, audit waktu WIB konsisten, kompilasi applet dan bundle produksi Vite lolos 100%, zlce-check.py valid (0 error, 0 warning, 29 task) TASK-029.
 * **2026-10-26 08:40:00 WIB:** TASK-028 selesai; Normalisasi tautan WhatsApp jujur tanpa nomor dummy tiruan 6281234567890 (fallback langsung ke text-only share link), dan implementasi flushOfflineSheetsQueue untuk retry sinkronisasi otomatis Google Sheets saat online TASK-028.

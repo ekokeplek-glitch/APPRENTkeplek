@@ -15,6 +15,7 @@
   - Platform/Mobile: VitePWA (mode prompt), Web App Manifest Standalone, Service Worker, Android Icons
   - Database & Storage: LocalStorage (`ryokourent_db_v1`) dengan corrupt DB backup otomatis, auto-snapshot sebelum restore, unified schema migration, structuredClone immutability, quota monitoring, JSON export/import
   - Integrasi: WhatsApp Web/App via `api.whatsapp.com` (UTF-8 URL encoded, honest link tanpa nomor dummy), Google Sheets webhook dengan offline retry queue
+  - **Target arsitektur (REV-10, rancangan, belum diimplementasi):** Google Sheets via gerbang Google Apps Script sebagai sumber acuan data bersama; cache baca dan Outbox di IndexedDB; LocalStorage hanya preferensi UI non-rahasia (`Q-26(b)`, disetujui). Lihat `docs/SYNC_ARCHITECTURE.md`.
 
 ### Tabel Dependensi Kunci
 
@@ -106,6 +107,7 @@
 | **M-10: Laporan Kinerja Bulanan & Okupansi** | Rekapitulasi multi-bulan, formula okupansi armada, evaluasi laba bersih, memo WA | `MonthlyReportView.tsx` |
 | **M-11: Modal Detail & Quick Share WhatsApp** | Detail 13 poin pemesanan dan generator 3 template WhatsApp instan (Konfirmasi, Pengingat, Terima Kasih) | `BookingDetailModal.tsx` |
 | **M-12: Log Operasional Harian & Insiden** | Catatan serah terima shift, insiden lapangan, info lalu lintas/cuaca, filter prioritas & LocalStorage sync | `DailyOperationalLogSection.tsx`, `DashboardView.tsx` |
+| **M-13: Sinkronisasi Multi-Perangkat (rancangan REV-10)** | Gerbang Apps Script, sumber acuan Sheets, Outbox offline terbatas, alert Telegram sisi server | `docs/SYNC_ARCHITECTURE.md` (belum ada kode) |
 
 *(Catatan: Modul WhatsApp dan Integrasi dipindahkan ke Bagian 10 sesuai instruksi).*
 
@@ -119,7 +121,7 @@ Seluruh spesifikasi integrasi WhatsApp dialihkan ke Bagian 10.
 
 ## 5. NON-FUNCTIONAL REQUIREMENTS (NFR)
 
-- **NFR-01 (Offline-First):** 100% operasional tanpa memerlukan internet untuk melihat, menginput, atau menyelesaikan transaksi rental.
+- **NFR-01 (Offline-First, direvisi REV-10):** Pada mode multi-perangkat, semua peran membaca dari cache saat offline; penulisan offline hanya catatan servis (entri baru), log operasional (entri baru), dan update posisi unit; membuat/menyetujui booking, transisi status, serta edit/hapus entri lama wajib online (`Q-08`, `ASM-14`, `Q-20`, `ASM-23`). Mode perangkat tunggal saat ini (LocalStorage) tetap 100% offline sampai implementasi didaftarkan.
 - **NFR-02 (Performa & Kecepatan):** Render UI $< 100$ms, ukuran build teroptimasi $< 1$MB.
 - **NFR-03 (Zero-Loss State):** Data tersinkron otomatis ke LocalStorage setiap ada aksi mutasi database.
 - **NFR-04 (Skalabilitas Armada):** Mampu menampung penambahan unit fisik garasi secara dinamis tanpa batas kaku (Q-02 YA).
@@ -133,6 +135,7 @@ Seluruh spesifikasi integrasi WhatsApp dialihkan ke Bagian 10.
 - `ASM-03`: **DISETUJUI DENGAN TAMBAHAN (YA)** — Selain Pool Malang & Batu, unit dapat berada dalam posisi **Dipakai Kurir** dengan nama kurir penanggung jawab yang tercatat jelas.
 - `Q-01`: **DISETUJUI (YA)** — Fitur filter rekapitulasi laporan omset per rentang tanggal disediakan untuk rekap bulanan.
 - `Q-02`: **DISETUJUI (YA)** — Jumlah unit armada motor akan terus bertambah secara dinamis seiring ekspansi rental.
+- **REV-10 (arsitektur sinkronisasi)** — rincian lengkap di `SESSION_STATE.md` bagian 4: `ASM-04` satu akun per perangkat; `ASM-05` 25 unit, di bawah 20 booking/hari; `Q-06` akun Google tersedia; `Q-08` booking wajib online; `Q-09` kurir tanpa akses aplikasi; `Q-10` polling 60 detik; `Q-12` Sheets sumber acuan; `Q-15` PWA tidak menyimpan foto; `ASM-14` DITOLAK (tulis offline dibutuhkan, `Q-20`); `ASM-22` bentrok dipengaruhi status "disewa"/"diservis"; `ASM-23` offline hanya entri baru dan posisi; `Q-25` ASM-03 tetap untuk lacak unit dan operasional, bukan bentrok; `Q-26` **DIJAWAB**: "Servis" = `ryokou_diservis` (istilah tunggal); `ASM-01` tidak berlaku untuk data bersama (cache dan Outbox di IndexedDB).
 
 ---
 
