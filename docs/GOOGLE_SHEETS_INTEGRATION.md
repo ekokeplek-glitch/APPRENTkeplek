@@ -3,6 +3,8 @@
 **Modul:** `src/services/googleSheetsService.ts`  
 **Tujuan:** Menyimpan data reservasi 13 field standar, melakukan review bersama admin/owner, memilih opsi tindak lanjut, dan mengeksekusi aksi operasional dari spreadsheet.
 
+> **STATUS ARSITEKTUR (REV-10, rancangan):** Dokumen ini menjelaskan integrasi **saat ini**: webhook satu arah (`UPSERT_BOOKING`). Arsitektur target menjadikan Google Sheets **sumber acuan** yang ditulis hanya oleh gerbang Apps Script bertoken, dengan tab tambahan (`Unit`, `Tracking`, `Servis`, `Log`, `Users`, `Penerima_Telegram`, `Audit`, `Alert_Log`), polling 60 detik, dan tanpa edit manual (`Q-18`). Lihat `docs/SYNC_ARCHITECTURE.md` bagian 3, 4, dan 6. Kode bagian 2 di bawah belum memuat autentikasi; endpoint berakses "Anyone" tanpa token tidak memadai untuk mode multi-perangkat.
+
 ---
 
 ## 1. STRUKTUR KOLOM SPREADSHEET (26 KOLOM)
@@ -130,6 +132,8 @@ function doPost(e) {
 ---
 
 ## 3. ALUR KERJA REVIEW, OPSI & AKSI DI GOOGLE SHEETS
+
+> **Catatan REV-10:** Alur review lewat pengeditan langsung kolom W-Y di Sheets bertentangan dengan keputusan `Q-18` (Sheets tidak diedit langsung pada arsitektur target). Pada target, review dan aksi dilakukan lewat aplikasi dan dicatat gerbang.
 
 1. **Simpan Data:** Setiap ada pesanan masuk di RyokoRent APK, data 13-field otomatis terkirim dan dicatat rapi ke Google Sheets.
 2. **Review Admin:** Admin/Owner membuka spreadsheet pada smartphone atau laptop:
