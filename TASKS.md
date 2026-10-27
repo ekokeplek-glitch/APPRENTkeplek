@@ -509,3 +509,83 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
 * **Metode Verifikasi:** Jalankan `python3 scripts/zlce/zlce-check.py .` dan tinjau daftar berkas berubah (tidak ada di `src/`); persetujuan pengguna wajib sebelum `DONE`.
 
 ---
+
+### TASK-030: Blueprint Skrip Gerbang Apps Script & Struktur Tabel Sheets
+* **Fase:** FASE 14
+* **Deskripsi:** Mengimplementasikan skrip gerbang Google Apps Script `backend/Code.gs` dan mendokumentasikan skema 9 tabel spreadsheet (`Booking`, `Unit`, `Tracking`, `Servis`, `Log`, `Users`, `Penerima_Telegram`, `Audit`, `Alert_Log`). Skrip mencakup inisialisasi tabel otomatis dengan header terformat, autentikasi berbasis session token berumur pendek, eksekusi tulis terserialisasi dengan `LockService`, perlindungan operasi idempoten dengan `idempotencyKey` dan verifikasi pada tabel `Audit`, handler `doGet` (sinkronisasi data & filter kolom per peran: Admin vs Operator), handler `doPost` (LOGIN, CREATE_BOOKING, APPROVE_BOOKING, UPDATE_STATUS, RECORD_SERVICE, RECORD_LOG, UPDATE_TRACKING), serta pencegahan bentrok jadwal dan buffer 60 menit di sisi server.
+* **Dependensi:** `TASK-REV-10`
+* **File:** `backend/Code.gs`, `docs/GOOGLE_SHEETS_INTEGRATION.md`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `BLUEPRINT.md`
+* **Docs Impact:** `docs/GOOGLE_SHEETS_INTEGRATION.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. `backend/Code.gs` mengimplementasikan fungsi inisialisasi skema 9 sheet lengkap dengan tipe kolom dan header baku.
+  2. Gerbang menyediakan fungsi autentikasi token sesi, pembatasan hak akses berbasis peran (Admin melihat seluruh data keuangan/omset; Operator difilter), dan proteksi `LockService`.
+  3. Handler `doPost` memvalidasi bentrok jadwal (+ buffer 60 menit) dan status `ryokou_disewa`/`ryokou_diservis`, mencatat setiap mutasi ke sheet `Audit` secara idempoten.
+* **Test Case:** Validasi skema 9 tabel, logika otentikasi token, dan handler operasi Apps Script
+* **Metode Verifikasi:** Jalankan `python3 scripts/zlce/zlce-check.py .` dan `npm run lint`.
+
+---
+
+### TASK-031: Autentikasi Sesi Klien & Penyesuaian Role Multi-Perangkat
+* **Fase:** FASE 14
+* **Deskripsi:** Mengimplementasikan lapisan autentikasi sesi klien untuk multi-perangkat: antarmuka login PIN/kredensial ke gerbang Apps Script, penonaktifan Quick Switcher bypass pada mode multi-perangkat (satu perangkat satu akun), penyimpanan token sesi aman di memori/sessionStorage dengan auto-clear saat logout, serta adaptasi hak akses UI secara ketat sesuai peran terverifikasi server.
+* **Dependensi:** `TASK-030`
+* **File:** `src/services/authService.ts`, `src/components/TopBar.tsx`, `src/App.tsx`, `src/types/ryoko.ts`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. Login form meminta PIN/kredensial dan memvalidasi ke server gerbang untuk memperoleh session token.
+  2. Quick Switcher tidak dapat mem-bypass hak akses pada mode multi-perangkat.
+  3. Token sesi tersimpan aman dan terhapus saat logout.
+* **Test Case:** Multi-device client session login & role enforcement test
+* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-032: Layer Penyimpanan IndexedDB & Outbox Offline Terbatas
+* **Fase:** FASE 14
+* **Deskripsi:** Mengimplementasikan layer penyimpanan IndexedDB untuk menggantikan LocalStorage pada data bersama: cache baca persisten terindeks dan Outbox antrean tulis offline terbatas. Menegakkan aturan ketat offline: hanya mengizinkan penambahan entri servis baru, log operasional baru, dan update posisi unit pelacakan ke Outbox. Booking baru, persetujuan booking, dan transisi status wajib online dan dinonaktifkan dengan peringatan jelas saat offline.
+* **Dependensi:** `TASK-031`
+* **File:** `src/services/indexedDbService.ts`, `src/services/outboxService.ts`, `src/components/NewBookingModal.tsx`, `src/components/ActionModals.tsx`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. IndexedDB mengelola cache baca terpisah dan Outbox offline dengan metadata `idempotencyKey` dan versi dasar.
+  2. Tulis offline hanya diizinkan untuk catatan servis, log operasional, dan posisi unit.
+  3. Pembuatan booking dan transisi status diblokir dengan pesan edukatif saat perangkat offline.
+* **Test Case:** IndexedDB read cache & restricted offline outbox validation
+* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-033: Layanan Sinkronisasi Dua Arah & Polling 60 Detik
+* **Fase:** FASE 14
+* **Deskripsi:** Mengimplementasikan layanan sinkronisasi dua arah multi-perangkat: timer polling setiap 60 detik untuk memeriksa versi data gerbang Apps Script, penarikan diff data otomatis bila versi berubah, pengurasan (flush) antrean Outbox saat koneksi pulih secara idempoten, dan penanganan konflik/penolakan server dengan kotak peninjauan "Perlu Ditinjau" (tidak dibuang diam-diam).
+* **Dependensi:** `TASK-032`
+* **File:** `src/services/syncEngineService.ts`, `src/components/ReviewInboxModal.tsx`, `src/components/TopBar.tsx`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. Polling berjalan otomatis setiap 60 detik untuk mendeteksi pembaruan data dari perangkat lain.
+  2. Outbox otomatis ter-flush saat online dengan retry bertahap.
+  3. Operasi yang ditolak server masuk ke kotak "Perlu Ditinjau" dan jejak audit dicatat.
+* **Test Case:** Bi-directional sync, 60s polling & outbox flush test
+* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+
+---
+
+### TASK-034: Pemicu Alert Telegram Sisi Server & Pengujian Terpadu
+* **Fase:** FASE 14
+* **Deskripsi:** Mengimplementasikan fungsi trigger berbasis waktu pada Google Apps Script (`timeBasedTrigger`) untuk memindai booking jatuh tempo (H-2, H-1, Overdue) dan mengirimkan notifikasi Telegram secara independen dari server ke daftar di `Penerima_Telegram` dengan pencatatan `Alert_Log`. Melakukan pengujian integrasi terpadu end-to-end arsitektur sinkronisasi multi-perangkat.
+* **Dependensi:** `TASK-033`
+* **File:** `backend/Code.gs`, `src/services/telegramBotService.ts`, `docs/TELEGRAM_BOT_INTEGRATION.md`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `BLUEPRINT.md`
+* **Docs Impact:** `docs/TELEGRAM_BOT_INTEGRATION.md`, `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. Pemicu waktu di Apps Script mengeksekusi pemeriksaan alert tanpa memerlukan aplikasi klien terbuka.
+  2. Notifikasi terkirim ke chat pribadi penerima terdaftar dan tercatat di sheet `Alert_Log` untuk mencegah duplikasi.
+  3. Seluruh suite pengujian aplikasi berjalan sukses dengan 0 error.
+* **Test Case:** Server-side Telegram alert trigger & end-to-end multi-device sync test
+* **Metode Verifikasi:** Jalankan `npm run lint`, `npm run build`, dan `python3 scripts/zlce/zlce-check.py .`.
+
+---

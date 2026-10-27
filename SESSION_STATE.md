@@ -17,12 +17,12 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 
 ## 1. STATUS AKTIF
 
-* **Timestamp Audit:** 2026-10-27 10:06:06 WIB
+* **Timestamp Audit:** 2026-10-27 10:25:00 WIB
 * **Cabang Git:** `main`
 * **Task Terakhir DONE:** `TASK-REV-10`
-* **Task Aktif:** `-`
-* **Status Task Aktif:** `DONE`
-* **Task Berikutnya:** `-`
+* **Task Aktif:** `TASK-030`
+* **Status Task Aktif:** `IN_PROGRESS`
+* **Task Berikutnya:** `TASK-031`
 
 ---
 
@@ -60,6 +60,11 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 | `TASK-028` | Normalisasi WhatsApp Jujur, Sanitasi Webhook Sheets & Aksi Telegram Nyata | TASK-027 | DONE | fallback dummy 6281234567890 dihapus 100%, link wa tanpa nomor membuka text-only share, flushOfflineSheetsQueue terpasang; tsx test pass, lint 0 error | ya |
 | `TASK-029` | PWA Prompt Update, Standarisasi Waktu WIB & Pengujian Otomatis | TASK-028 | DONE | PWA registerType prompt aktif di vite.config.ts, audit standarisasi waktu WIB konsisten, pengujian otomatis menyeluruh 7/7 lolos; npm run lint 0 error, build production sukses | ya |
 | `TASK-REV-10` | Arsitektur Sinkronisasi Multi-Perangkat (Google Sheets sebagai Sumber Acuan): Rancangan & Dokumentasi | TASK-029 | DONE | AC1: docs/SYNC_ARCHITECTURE.md selaras dengan ASM/Q (Q-26 diterapkan); AC2: tidak ada ASM/Q OPEN (zlce-check 0 item OPEN), dokumen terdampak (GOOGLE_SHEETS_INTEGRATION, TELEGRAM_BOT_INTEGRATION, SECURITY, BLUEPRINT, CHANGELOG) selaras; AC3: diff -rq terhadap arsip asli, src/ identik; zlce-check 0 error, 0 warn, 30 task | ya |
+| `TASK-030` | Blueprint Skrip Gerbang Apps Script & Struktur Tabel Sheets | TASK-REV-10 | IN_PROGRESS | - | - |
+| `TASK-031` | Autentikasi Sesi Klien & Penyesuaian Role Multi-Perangkat | TASK-030 | PENDING | - | - |
+| `TASK-032` | Layer Penyimpanan IndexedDB & Outbox Offline Terbatas | TASK-031 | PENDING | - | - |
+| `TASK-033` | Layanan Sinkronisasi Dua Arah & Polling 60 Detik | TASK-032 | PENDING | - | - |
+| `TASK-034` | Pemicu Alert Telegram Sisi Server & Pengujian Terpadu | TASK-033 | PENDING | - | - |
 
 Bukti Verifikasi: ringkasan + lokasi bukti (mis. "lint 0 error, 12/12 test pass"). `DONE` tanpa bukti dan `Disetujui: ya` tidak valid.
 
@@ -69,13 +74,13 @@ Bukti Verifikasi: ringkasan + lokasi bukti (mis. "lint 0 error, 12/12 test pass"
 
 Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH langkah selesai. Kosongkan (semua `-`) saat task `DONE`.
 
-* **Task:** `-`
-* **Langkah Sedang Dikerjakan:** `-`
-* **Berkas Direncanakan/Disentuh:** `-`
-* **Sudah Dilakukan:** `TASK-REV-10` selesai dan disetujui pengguna; rancangan arsitektur sinkronisasi terdokumentasi di `docs/SYNC_ARCHITECTURE.md`; implementasi belum didaftarkan
-* **Langkah Berikutnya (persis):** `-`
-* **Perintah Verifikasi:** `-`
-* **Diperbarui:** 2026-10-27 10:06:06 WIB
+* **Task:** `TASK-030`
+* **Langkah Sedang Dikerjakan:** Verifikasi implementasi backend/Code.gs dan dokumentasi skema 9-sheet Google Sheets
+* **Berkas Direncanakan/Disentuh:** `backend/Code.gs`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `TASKS.md`, `SESSION_STATE.md`
+* **Sudah Dilakukan:** Membuat backend/Code.gs (skema 9 sheet, otentikasi sesi token HMAC-SHA256, LockService serialisasi, idempotensi, audit log, filter peran RBAC, server schedule conflict guard + buffer 60 menit, handler doGet/doPost) dan memperbarui docs/GOOGLE_SHEETS_INTEGRATION.md; kompilasi applet, npm run lint, npm run build, dan zlce-check 100% lulus 0 error
+* **Langkah Berikutnya (persis):** Menunggu persetujuan pengguna untuk menandai TASK-030 DONE dan lanjut ke TASK-031
+* **Perintah Verifikasi:** `python3 scripts/zlce/zlce-check.py . && npm run lint && npm run build`
+* **Diperbarui:** 2026-10-27 10:30:00 WIB
 
 ---
 
@@ -150,6 +155,7 @@ Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 
 ## 7. LOG AUDIT (terbaru di atas; arsipkan entri lama ke `docs/archive/`)
 
+* **2026-10-27 10:25:00 WIB:** TASK-030 dimulai (IN_PROGRESS); pendaftaran TASK-030 s/d TASK-034 di TASKS.md dan SESSION_STATE.md atas persetujuan pengguna; WAL diaktifkan untuk implementasi backend/Code.gs dan skema 9 sheet.
 * **2026-10-27 10:06:06 WIB:** `TASK-REV-10` DONE atas persetujuan eksplisit pengguna ("Disetujui TASK-REV-10 DONE"). `Q-26` dijawab: "Servis" = `ryokou_diservis` (istilah tunggal), `ASM-01` tidak berlaku untuk data bersama; diterapkan ke `docs/SYNC_ARCHITECTURE.md` (bagian 1, 4, 5, 9, 11) dan `BLUEPRINT.md`. Bukti: `src/` identik terhadap arsip asli; zlce-check 0 error, 0 warn, 30 task, tidak ada ASM/Q OPEN. Tidak ada commit (bukan repositori git).
 * **2026-10-27 09:57:53 WIB:** `TASK-REV-10` dikerjakan: `docs/SYNC_ARCHITECTURE.md` ditulis; `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md` (modul M-13, NFR-01, bagian 6), `CHANGELOG.md` diselaraskan. Bukti: `diff -rq` terhadap arsip asli menunjukkan `src/` identik; zlce-check 0 error, 0 warn, 30 task. Status tetap IN_PROGRESS: `Q-26` OPEN dan persetujuan `DONE` belum ada. Tidak ada commit (bukan repositori git).
 * **2026-10-27 09:55:44 WIB:** PEMULIHAN BERKAS KONTROL atas permintaan pengguna: `AI_WORKFLOW.md` (hilang dari arsip) dibuat ulang dari `templates/AI_WORKFLOW.template.md` (identik dengan salinan di `ZLCE_KIT_SINGLE.md`; hanya placeholder nama proyek diisi). Isi asli yang hilang tidak dapat dipulihkan; isi berasal dari template baku.
