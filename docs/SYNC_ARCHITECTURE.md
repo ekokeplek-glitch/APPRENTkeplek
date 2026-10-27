@@ -27,27 +27,33 @@ Rujukan keputusan: ID `ASM`/`Q` di `SESSION_STATE.md` bagian 4. Seluruh item sud
 
 LocalStorage pada satu perangkat **bukan** sumber data bersama; ia hanya salinan (cache).
 
-| Data | Admin | Operator | `admin_custom` | Kurir |
-| :--- | :--- | :--- | :--- | :--- |
-| Booking: data penyewa, jadwal, unit | R/W | R/W | R/W sesuai izin | Tidak ada akses aplikasi |
-| Transisi status booking (termasuk serah terima dan selesai) | R/W | R/W (sesuai state machine) | Sesuai izin | Melapor lewat WA; operator/admin yang mengubah status |
-| Tarif, total, denda, omset, laporan | R/W | Tersembunyi | Sesuai izin | - |
-| Armada dan tarif model | R/W | R | Sesuai izin | - |
-| Posisi unit (pelacakan) | R/W | R/W | Sesuai izin | - |
-| Catatan servis | R/W | R/W | Sesuai izin | - |
-| Log operasional | R/W | R/W | Sesuai izin | - |
-| Pengguna, peran, pengaturan, integrasi, ekspor | R/W | - | - | - |
-| Log audit | R | R terbatas | - | - |
+| Data & Fitur | Administrator | Owner | Admin | Operator | Kurir |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Laporan Omset, Pendapatan, Finansial | R/W | R/W | Tersembunyi | Tersembunyi | Tersembunyi |
+| Manajemen Pengguna (Users & Roles) | R/W | R/W | - | - | - |
+| Tarif Sewa & Manajemen Unit Armada | R/W | R/W | R/W | R (View-only) | - |
+| Booking & Transisi Status Sewa | R/W | R/W | R/W | R/W | - |
+| Posisi Unit & Pelacakan (Tracking) | R/W | R/W | R/W | R/W | R/W (Lacak Unit) |
+| Servis & Perawatan Armada (7 Kat) | R/W | R/W | R/W | R/W | - |
+| Log Operasional Harian Lapangan | R/W | R/W | R/W | R/W | - |
+| Pengaturan Umum Rental & Pool | R/W | R/W | R/W | - | - |
+| ZLCE Studio Snapshot & Recovery Data | R/W | - | - | - | - |
 
 Catatan:
-- `admin_custom` dibatasi pada operasional dan pengiriman (`Q-07`, tafsiran). Rincian izin per fitur tetap dikonfigurasi Admin.
-- Filter kolom dilakukan **di gerbang**, bukan di UI: Operator tidak menerima omset; Alamat KTP hanya diterima peran yang berhak.
+- **Administrator:** Akses ke semua fitur tanpa kecuali, termasuk ZLCE recovery dan snapshot database.
+- **Owner:** Akses ke seluruh operasional dan finansial, kecuali recovery & snapshot data.
+- **Admin:** Seperti Owner dikurangi laporan omset/finansial dan manajemen pengguna. Memiliki kontrol tarif sewa dan unit armada.
+- **Operator:** Seperti Admin dikurangi tarif & unit armada (fokus pada operasional booking, servis, dan lacak unit).
+- **Kurir:** Khusus pelacakan unit motor (lacak unit) untuk monitoring armada di lapangan.
+- Filter kolom keuangan dan data sensitif ditegakkan di sisi gerbang Apps Script dan antarmuka klien.
 
 ### Skenario penggunaan
 
-- **Admin:** memantau seluruh booking dan armada dari sumber data yang sama, menyetujui booking, mengatur tarif dan pengguna, melihat omset dan okupansi.
-- **Operator:** menerima pesan penyewa, memasukkan booking (online), memeriksa bentrok jadwal dan buffer 60 menit, mengubah status setelah laporan kurir, mencatat servis, log operasional, dan posisi unit (boleh offline).
-- **Kurir:** menerima surat tugas ambil/antar dan kwitansi paperless di grup WA, mengirim foto serah terima ke grup, melapor serah terima di grup, menerima alert Telegram untuk menghubungi penyewa.
+- **Administrator:** Mengelola seluruh sistem, integrasi backend, recovery snapshot ZLCE, dan konfigurasi darurat.
+- **Owner:** Memantau laporan omset harian/bulanan, tren okupansi, konfigurasi pengguna, dan strategi tarif sewa.
+- **Admin:** Mengelola inventaris fisik motor, tarif paket sewa, menyetujui booking, serta memonitor operasional harian.
+- **Operator:** Menginput pemesanan sewa baru (online), mengecek bentrok jadwal (+ buffer 60 menit), mencatat log shift, servis, dan status posisi.
+- **Kurir:** Membuka antarmuka Lacak Unit untuk mengetahui unit motor yang sedang berjalan, posisi pool, dan informasi penyewa terkait tugas pengantaran/penjemputan.
 
 ---
 

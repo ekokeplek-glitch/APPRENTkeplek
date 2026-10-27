@@ -54,24 +54,17 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
   }> = [];
 
   if (isCourier) {
-    // Mode Kurir: Khusus Tugas Antar/Jemput & Unit Motor Kurir
+    // Mode Kurir: Khusus Lacak Unit Motor
     tabs = [
       {
-        id: 'courier',
-        label: 'Tugas Kurir',
-        icon: Navigation,
-        badge: pendingCount + activeRentalsCount,
-        badgeColor: 'bg-amber-500 text-slate-950',
-      },
-      {
         id: 'tracking',
-        label: 'Motor Kurir',
-        icon: Bike,
+        label: 'Lacak Unit',
+        icon: Compass,
         badge: 0,
       },
     ];
   } else {
-    // Standard / Admin / Operator Tabs
+    // Standard Tabs untuk Administrator, Owner, Admin, & Operator
     tabs = [
       {
         id: 'dashboard',
@@ -110,8 +103,8 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
       });
     }
 
-    // Armada: visible to admin, operator, and custom admin with canManageFleet
-    if (activeUser?.role === 'administrator' || activeUser?.role === 'operator' || permissions.canManageFleet) {
+    // Armada: Administrator, Owner, Admin (Operator dikurangi tarif & unit armada)
+    if (permissions.canManageFleet) {
       tabs.push({
         id: 'fleet',
         label: 'Armada',
@@ -120,8 +113,8 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
       });
     }
 
-    // Monthly Reports: visible to Administrator or custom admin with canViewRevenue
-    if (activeUser?.role === 'administrator' || permissions.canViewRevenue) {
+    // Laporan Omset & Finansial: Administrator & Owner (Admin & Operator dikurangi omset)
+    if (permissions.canViewRevenue) {
       tabs.push({
         id: 'reports',
         label: 'Laporan',
@@ -130,8 +123,8 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
       });
     }
 
-    // User Management: visible to Administrator or custom admin with canManageUsers
-    if (activeUser?.role === 'administrator' || permissions.canManageUsers) {
+    // Manajemen Pengguna: Administrator & Owner (Admin & Operator dikurangi user management)
+    if (permissions.canManageUsers) {
       tabs.push({
         id: 'users',
         label: 'Pengguna',
@@ -140,8 +133,8 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
       });
     }
 
-    // Settings: visible to Administrator or custom admin with canManageSettings
-    if (activeUser?.role === 'administrator' || permissions.canManageSettings) {
+    // Pengaturan Rental: Administrator, Owner, & Admin
+    if (permissions.canManageSettings) {
       tabs.push({
         id: 'settings',
         label: 'Pengaturan',

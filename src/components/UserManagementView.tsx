@@ -97,7 +97,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       username: user.username,
       role: user.role,
       phone: user.phone || '',
-      avatarIcon: user.avatarIcon || (user.role === 'administrator' ? '👑' : user.role === 'admin_custom' ? '🛠️' : user.role === 'operator' ? '📋' : '🛵'),
+      avatarIcon: user.avatarIcon || (user.role === 'administrator' ? '👑' : user.role === 'owner' ? '🏢' : user.role === 'admin' ? '💼' : user.role === 'operator' ? '📋' : '🛵'),
       isActive: user.isActive,
       catatan: user.catatan || '',
       customPermissions: user.customPermissions || { ...DEFAULT_CUSTOM_ADMIN_PERMISSIONS },
@@ -108,7 +108,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const handleRoleChange = (role: UserRole) => {
     let icon = formData.avatarIcon;
     if (role === 'administrator') icon = '👑';
-    else if (role === 'admin_custom') icon = '🛠️';
+    else if (role === 'owner') icon = '🏢';
+    else if (role === 'admin') icon = '💼';
     else if (role === 'operator') icon = '📋';
     else if (role === 'kurir') icon = '🛵';
 
@@ -145,7 +146,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       avatarIcon: formData.avatarIcon,
       isActive: formData.isActive,
       catatan: formData.catatan.trim(),
-      customPermissions: formData.role === 'admin_custom' ? formData.customPermissions : undefined,
+      customPermissions: formData.customPermissions,
       createdAt: editingUser?.createdAt || new Date().toLocaleString('id-ID'),
     };
 
@@ -172,7 +173,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-400">
-            Kelola 4 tingkatan hak akses: Administrator (All Access), Admin Custom, Operator Terbatas, & Kurir Lapangan.
+            Hierarki 5 Peran: Administrator (All Access), Owner (Tanpa Recovery), Admin (Operasional & Armada), Operator (Sewa & Servis), & Kurir (Lacak Unit).
           </p>
         </div>
 
@@ -186,8 +187,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       </div>
 
       {/* Role Summary Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {(['administrator', 'admin_custom', 'operator', 'kurir'] as UserRole[]).map(roleKey => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+        {(['administrator', 'owner', 'admin', 'operator', 'kurir'] as UserRole[]).map(roleKey => {
           const meta = ROLE_LABELS[roleKey];
           const userCount = db.users.filter(u => u.role === roleKey).length;
           return (
@@ -301,25 +302,34 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     </p>
                   )}
 
-                  {/* Permissions pill for custom admin */}
-                  {user.role === 'admin_custom' && (
-                    <div className="pt-1 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                      <span className="text-purple-300 font-medium">Izin Kustom:</span>
-                      <span className="text-slate-300 font-mono">
-                        {countActivePermissions(user.customPermissions)} / 8 Izin Aktif
-                      </span>
+                  {/* Role descriptions */}
+                  {user.role === 'administrator' && (
+                    <div className="pt-1 border-t border-slate-800/60 text-[11px] text-rose-300/90">
+                      Akses ke semua fitur tanpa kecuali (termasuk recovery & snapshot)
+                    </div>
+                  )}
+
+                  {user.role === 'owner' && (
+                    <div className="pt-1 border-t border-slate-800/60 text-[11px] text-amber-300/90">
+                      Semua fitur kecuali recovery & snapshot data
+                    </div>
+                  )}
+
+                  {user.role === 'admin' && (
+                    <div className="pt-1 border-t border-slate-800/60 text-[11px] text-purple-300/90">
+                      Seperti owner dikurangi laporan omset & finansial dan manajemen pengguna
                     </div>
                   )}
 
                   {user.role === 'operator' && (
                     <div className="pt-1 border-t border-slate-800/60 text-[11px] text-cyan-400/90">
-                      Akses operasional harian (Omset finansial disembunyikan)
+                      Seperti admin dikurangi tarif & unit armada
                     </div>
                   )}
 
                   {user.role === 'kurir' && (
-                    <div className="pt-1 border-t border-slate-800/60 text-[11px] text-amber-400/90">
-                      Mode Kurir khusus antar/jemput (Zero-access sistem)
+                    <div className="pt-1 border-t border-slate-800/60 text-[11px] text-emerald-400/90">
+                      Akses khusus pelacakan unit motor (lacak unit)
                     </div>
                   )}
                 </div>
@@ -443,23 +453,24 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     onChange={e => setFormData({ ...formData, avatarIcon: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="👑">👑 Mahkota (Super Admin)</option>
-                    <option value="🛠️">🛠️ Kunci Pas (Custom Admin)</option>
+                    <option value="👑">👑 Mahkota (Administrator)</option>
+                    <option value="🏢">🏢 Gedung (Owner Rental)</option>
+                    <option value="💼">💼 Koper (Admin Operasional)</option>
                     <option value="📋">📋 Papan Data (Operator)</option>
                     <option value="🛵">🛵 Motor (Kurir Malang)</option>
-                    <option value="⚡">⚡ Kilat (Kurir Cepat)</option>
+                    <option value="⚡">⚡ Kilat (Kurir Batu)</option>
                     <option value="👤">👤 Pengguna Biasa</option>
                   </select>
                 </div>
               </div>
 
-              {/* Pilihan Peran (4 Tiers) */}
+              {/* Pilihan Peran (5 Tingkatan) */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   Tingkatan Peran / Hak Akses *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {(['administrator', 'admin_custom', 'operator', 'kurir'] as UserRole[]).map(r => {
+                  {(['administrator', 'owner', 'admin', 'operator', 'kurir'] as UserRole[]).map(r => {
                     const meta = ROLE_LABELS[r];
                     const isSelected = formData.role === r;
                     return (
@@ -488,85 +499,48 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 </div>
               </div>
 
-              {/* Granular Permission Checklist for admin_custom */}
-              {formData.role === 'admin_custom' && (
-                <div className="bg-purple-950/20 border border-purple-800/40 rounded-xl p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Sliders className="w-4 h-4 text-purple-400" />
-                      <span className="text-xs font-bold text-purple-200">
-                        Atur Izin Granular (Custom Access)
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-purple-300 font-mono">
-                      {countActivePermissions(formData.customPermissions)} / 8 Aktif
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {[
-                      { key: 'canViewRevenue' as keyof UserPermissions, label: 'Laporan Omset & Finansial', icon: Eye },
-                      { key: 'canManageBookings' as keyof UserPermissions, label: 'Kelola Booking / Pemesanan', icon: CalendarCheck2 },
-                      { key: 'canManageTracking' as keyof UserPermissions, label: 'Lacak Unit Garasi & Kurir', icon: Compass },
-                      { key: 'canManageService' as keyof UserPermissions, label: 'Catat Servis Rutin 7 Kat', icon: Wrench },
-                      { key: 'canManageFleet' as keyof UserPermissions, label: 'Tarif & Unit Armada Garasi', icon: Bike },
-                      { key: 'canManageSettings' as keyof UserPermissions, label: 'Pengaturan Jam & Pool', icon: Settings },
-                      { key: 'canManageUsers' as keyof UserPermissions, label: 'Manajemen Pengguna', icon: Users },
-                      { key: 'canAccessRecovery' as keyof UserPermissions, label: 'Recovery & Snapshot ZLCE', icon: Database },
-                    ].map(perm => {
-                      const isAllowed = formData.customPermissions[perm.key];
-                      const IconComp = perm.icon;
-                      return (
-                        <button
-                          type="button"
-                          key={perm.key}
-                          onClick={() => handleTogglePermission(perm.key)}
-                          className={`flex items-center justify-between p-2 rounded-lg text-xs border text-left transition ${
-                            isAllowed
-                              ? 'bg-purple-900/40 border-purple-500/60 text-white'
-                              : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <IconComp className={`w-3.5 h-3.5 ${isAllowed ? 'text-purple-300' : 'text-slate-500'}`} />
-                            <span className="text-[11px] font-medium">{perm.label}</span>
-                          </div>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            isAllowed ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-500'
-                          }`}>
-                            {isAllowed ? 'IZINKAN' : 'KUNCI'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* Information banners per role */}
+              {formData.role === 'administrator' && (
+                <div className="flex items-start gap-2 bg-rose-950/30 border border-rose-800/40 rounded-xl p-2.5 text-xs text-rose-300">
+                  <Lock className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                  <span>
+                    <strong>Administrator:</strong> Akses ke semua fitur tanpa kecuali, termasuk pengaturan sistem, laporan omset, armada, user management, dan ZLCE recovery & snapshot.
+                  </span>
                 </div>
               )}
 
-              {/* Information message for Operator or Kurir */}
+              {formData.role === 'owner' && (
+                <div className="flex items-start gap-2 bg-amber-950/30 border border-amber-800/40 rounded-xl p-2.5 text-xs text-amber-300">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    <strong>Owner:</strong> Akses ke semua fitur (laporan omset & finansial, booking, armada, tarif sewa, settings, manajemen user) KECUALI recovery & snapshot data.
+                  </span>
+                </div>
+              )}
+
+              {formData.role === 'admin' && (
+                <div className="flex items-start gap-2 bg-purple-950/30 border border-purple-800/40 rounded-xl p-2.5 text-xs text-purple-300">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
+                  <span>
+                    <strong>Admin:</strong> Seperti owner dikurangi laporan omset & finansial dan manajemen pengguna. Memiliki akses penuh kelola booking, lacak unit, servis, dan tarif & unit armada.
+                  </span>
+                </div>
+              )}
+
               {formData.role === 'operator' && (
                 <div className="flex items-start gap-2 bg-cyan-950/30 border border-cyan-800/40 rounded-xl p-2.5 text-xs text-cyan-300">
                   <Info className="w-4 h-4 shrink-0 mt-0.5 text-cyan-400" />
                   <span>
-                    <strong>Operator:</strong> Dapat mengelola booking, lacak unit, dan servis. Omset finansial disembunyikan dan tarif sewa armada berstatus hanya-baca (view-only).
+                    <strong>Operator:</strong> Seperti admin dikurangi tarif & unit armada. Memiliki akses kelola booking, lacak unit, dan servis armada.
                   </span>
                 </div>
               )}
 
               {formData.role === 'kurir' && (
-                <div className="flex items-start gap-2 bg-amber-950/30 border border-amber-800/40 rounded-xl p-2.5 text-xs text-amber-300">
-                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div className="flex items-start gap-2 bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-2.5 text-xs text-emerald-300">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
                   <span>
-                    <strong>Kurir:</strong> Tampilan khusus antar/jemput unit motor dengan tombol chat WhatsApp ke penyewa dan konfirmasi serah terima di lapangan. Seluruh menu administrasi & finansial dikunci.
-                  </span>
-                </div>
-              )}
-
-              {formData.role === 'administrator' && (
-                <div className="flex items-start gap-2 bg-rose-950/30 border border-rose-800/40 rounded-xl p-2.5 text-xs text-rose-300">
-                  <Lock className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-                  <span>
-                    <strong>Administrator:</strong> Memiliki akses 100% tanpa batas ke seluruh data omset, booking, armada, servis, setting, user management, dan ZLCE recovery snapshot.
+                    <strong>Kurir:</strong> Akses khusus pelacakan unit motor (lacak unit) untuk kemudahan koordinasi posisi unit motor di lapangan.
                   </span>
                 </div>
               )}

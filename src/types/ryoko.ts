@@ -203,7 +203,13 @@ export interface RentalSettings {
   telegramAdminChatId?: string;
 }
 
-export type UserRole = 'administrator' | 'admin_custom' | 'operator' | 'kurir';
+// Hierarki 5 Tingkat Peran (TASK-031):
+// 1. administrator: akses ke semua fitur tanpa kecuali (termasuk recovery & snapshot)
+// 2. owner: semua fitur kecuali recovery & snapshot data
+// 3. admin: seperti owner dikurangi laporan omset & finansial dan manajemen pengguna
+// 4. operator: seperti admin dikurangi tarif sewa & unit armada
+// 5. kurir: khusus pelacakan unit motor (lacak unit)
+export type UserRole = 'administrator' | 'owner' | 'admin' | 'operator' | 'kurir';
 
 export interface UserPermissions {
   canViewRevenue: boolean;      // Melihat laporan omset, pendapatan, grafik finansial

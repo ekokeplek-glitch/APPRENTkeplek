@@ -17,12 +17,12 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 
 ## 1. STATUS AKTIF
 
-* **Timestamp Audit:** 2026-10-27 10:25:00 WIB
+* **Timestamp Audit:** 2026-10-27 10:45:00 WIB
 * **Cabang Git:** `main`
-* **Task Terakhir DONE:** `TASK-REV-10`
-* **Task Aktif:** `TASK-030`
+* **Task Terakhir DONE:** `TASK-030`
+* **Task Aktif:** `TASK-031`
 * **Status Task Aktif:** `IN_PROGRESS`
-* **Task Berikutnya:** `TASK-031`
+* **Task Berikutnya:** `TASK-032`
 
 ---
 
@@ -60,8 +60,8 @@ Format dibaca skrip `scripts/zlce/zlce-check.py`; jangan ubah nama field, kolom,
 | `TASK-028` | Normalisasi WhatsApp Jujur, Sanitasi Webhook Sheets & Aksi Telegram Nyata | TASK-027 | DONE | fallback dummy 6281234567890 dihapus 100%, link wa tanpa nomor membuka text-only share, flushOfflineSheetsQueue terpasang; tsx test pass, lint 0 error | ya |
 | `TASK-029` | PWA Prompt Update, Standarisasi Waktu WIB & Pengujian Otomatis | TASK-028 | DONE | PWA registerType prompt aktif di vite.config.ts, audit standarisasi waktu WIB konsisten, pengujian otomatis menyeluruh 7/7 lolos; npm run lint 0 error, build production sukses | ya |
 | `TASK-REV-10` | Arsitektur Sinkronisasi Multi-Perangkat (Google Sheets sebagai Sumber Acuan): Rancangan & Dokumentasi | TASK-029 | DONE | AC1: docs/SYNC_ARCHITECTURE.md selaras dengan ASM/Q (Q-26 diterapkan); AC2: tidak ada ASM/Q OPEN (zlce-check 0 item OPEN), dokumen terdampak (GOOGLE_SHEETS_INTEGRATION, TELEGRAM_BOT_INTEGRATION, SECURITY, BLUEPRINT, CHANGELOG) selaras; AC3: diff -rq terhadap arsip asli, src/ identik; zlce-check 0 error, 0 warn, 30 task | ya |
-| `TASK-030` | Blueprint Skrip Gerbang Apps Script & Struktur Tabel Sheets | TASK-REV-10 | IN_PROGRESS | - | - |
-| `TASK-031` | Autentikasi Sesi Klien & Penyesuaian Role Multi-Perangkat | TASK-030 | PENDING | - | - |
+| `TASK-030` | Blueprint Skrip Gerbang Apps Script & Struktur Tabel Sheets | TASK-REV-10 | DONE | backend/Code.gs skema 9 sheet, otentikasi HMAC-SHA256, LockService & audit aktif; zlce-check & lint 0 error | ya |
+| `TASK-031` | Autentikasi Sesi Klien & Penyesuaian Role Hierarki 5-Tingkat | TASK-030 | IN_PROGRESS | - | - |
 | `TASK-032` | Layer Penyimpanan IndexedDB & Outbox Offline Terbatas | TASK-031 | PENDING | - | - |
 | `TASK-033` | Layanan Sinkronisasi Dua Arah & Polling 60 Detik | TASK-032 | PENDING | - | - |
 | `TASK-034` | Pemicu Alert Telegram Sisi Server & Pengujian Terpadu | TASK-033 | PENDING | - | - |
@@ -74,13 +74,13 @@ Bukti Verifikasi: ringkasan + lokasi bukti (mis. "lint 0 error, 12/12 test pass"
 
 Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH langkah selesai. Kosongkan (semua `-`) saat task `DONE`.
 
-* **Task:** `TASK-030`
-* **Langkah Sedang Dikerjakan:** Verifikasi implementasi backend/Code.gs dan dokumentasi skema 9-sheet Google Sheets
-* **Berkas Direncanakan/Disentuh:** `backend/Code.gs`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `TASKS.md`, `SESSION_STATE.md`
-* **Sudah Dilakukan:** Membuat backend/Code.gs (skema 9 sheet, otentikasi sesi token HMAC-SHA256, LockService serialisasi, idempotensi, audit log, filter peran RBAC, server schedule conflict guard + buffer 60 menit, handler doGet/doPost) dan memperbarui docs/GOOGLE_SHEETS_INTEGRATION.md; kompilasi applet, npm run lint, npm run build, dan zlce-check 100% lulus 0 error
-* **Langkah Berikutnya (persis):** Menunggu persetujuan pengguna untuk menandai TASK-030 DONE dan lanjut ke TASK-031
+* **Task:** `TASK-031`
+* **Langkah Sedang Dikerjakan:** Verifikasi penyelesaian implementasi revisi hierarki 5 peran pengguna dan proteksi akses UI/backend
+* **Berkas Direncanakan/Disentuh:** `src/types/ryoko.ts`, `src/utils/userPermissions.ts`, `src/data/seedData.ts`, `src/components/UserManagementView.tsx`, `src/components/AndroidBottomNav.tsx`, `src/components/AndroidTopBar.tsx`, `src/App.tsx`, `backend/Code.gs`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/SYNC_ARCHITECTURE.md`, `TASKS.md`, `CHANGELOG.md`, `SESSION_STATE.md`
+* **Sudah Dilakukan:** Memperbarui spesifikasi revisi TASK-031 pada TASKS.md; implementasi tipe UserRole 5-tingkat di src/types/ryoko.ts; matriks izin granular & ROLE_LABELS di src/utils/userPermissions.ts; akun seed contoh 5 peran di src/data/seedData.ts; antarmuka manajemen pengguna di src/components/UserManagementView.tsx; pembatasan menu navigasi di AndroidBottomNav.tsx, AndroidTopBar.tsx, dan App.tsx; filter RBAC di backend/Code.gs; dokumentasi di docs/SYNC_ARCHITECTURE.md, docs/GOOGLE_SHEETS_INTEGRATION.md, dan CHANGELOG.md; lint_applet lulus (tsc 0 error), compile_applet lulus, zlce-check.py lulus (0 error, 0 warn, 35 task)
+* **Langkah Berikutnya (persis):** Menunggu persetujuan pengguna untuk menandai TASK-031 DONE dan beralih ke TASK-032
 * **Perintah Verifikasi:** `python3 scripts/zlce/zlce-check.py . && npm run lint && npm run build`
-* **Diperbarui:** 2026-10-27 10:30:00 WIB
+* **Diperbarui:** 2026-10-27 10:55:00 WIB
 
 ---
 
@@ -116,6 +116,7 @@ Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH
 | `Q-24` | Pertanyaan | Risiko foto di grup WA dan UU PDP? Jawab: topik ditutup oleh pemilik, tidak dibahas lanjut | Risiko data pribadi di luar sistem | ANSWERED |
 | `Q-25` | Pertanyaan | Apakah ASM-03 (Pool Malang, Pool Batu, Servis, Dipakai Kurir) masih berlaku atau digantikan ASM-22? Jawab: ASM-03 masih berlaku untuk lacak unit dan operasional, TIDAK untuk menentukan bentrok booking | Daftar posisi/lokasi unit tidak selaras | ANSWERED |
 | `Q-26` | Pertanyaan | Pembacaan atas jawaban Q-25 (usulan AI): (a) "disewa" dan "diservis" pada ASM-22 = status booking (`ryokou_disewa`, `ryokou_diservis`) yang ikut menentukan bentrok, sedangkan posisi pelacakan ASM-03 (termasuk "Servis") tidak; (b) ASM-01 tidak lagi berlaku untuk data bersama: sumber acuan Sheets, cache baca dan Outbox di IndexedDB, LocalStorage hanya preferensi UI non-rahasia. Jawab: (a) "Servis" sama dengan `ryokou_diservis`, pakai `ryokou_diservis` saja; (b) Ya, setuju | Aturan bentrok saat sinkron dan lokasi penyimpanan klien salah | ANSWERED |
+| `Q-27` | Pertanyaan | Bagaimana pembagian hierarki peran pengguna (RBAC)? Jawab: 5 tingkatan: administrator = akses ke semua; owner = semua kecuali recovery & snapshot; admin = seperti owner dikurangi omset & finansial dan manajemen pengguna; operator = seperti admin dikurangi tarif & unit armada; kurir = lacak unit | Hak akses dan keamanan data tidak sesuai hierarki operasional | ANSWERED |
 
 Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 
@@ -134,7 +135,8 @@ Status: `OPEN | CONFIRMED | REJECTED | ANSWERED`.
 | `REV-07` | S | Fitur Log Operasional Harian & Catatan Insiden Lapangan di Dashboard LocalStorage | Dituangkan ke TASK-017 |
 | `REV-08` | L | Perbaikan Tuntas 23 Temuan Audit @kepek (WIB offset, parser WA, guarded transitions, kuota/keamanan, integrasi eksternal, mobile PWA) | Dituangkan ke TASK-018 s/d TASK-022 |
 | `REV-09` | L | Remidiasi Lanjutan Review CGPT & Claude: F-03 tarif deal awal (harian tetap harian), pemisahan kolom tanggal/jam form booking & auto-format jam cerdas (4, 4.00, 4,00 -> 04:00), guarded booking lifecycle, proteksi korup storage, auto-snapshot restore, dan PWA prompt update | Dituangkan ke TASK-023 s/d TASK-029 |
-| `REV-10` | L | Arsitektur sinkronisasi multi-perangkat: PWA Admin dan Operator berbagi sumber acuan Google Sheets lewat gerbang Apps Script; kurir tanpa PWA (WhatsApp dan Telegram); polling 60 detik; tulis offline terbatas (catatan servis, log operasional, posisi unit) via Outbox IndexedDB; foto tidak disimpan di PWA | Dituangkan ke TASK-REV-10 (rancangan dan dokumentasi). Implementasi belum didaftarkan |
+| `REV-10` | L | Arsitektur sinkronisasi multi-perangkat: PWA Admin dan Operator berbagi sumber acuan Google Sheets lewat gerbang Apps Script; kurir tanpa PWA (WhatsApp dan Telegram); polling 60 detik; tulis offline terbatas (catatan servis, log operasional, posisi unit) via Outbox IndexedDB; foto tidak disimpan di PWA | Dituangkan ke TASK-REV-10 (rancangan dan dokumentasi). Implementasi didaftarkan ke TASK-030 s/d TASK-034 |
+| `REV-11` | M | Revisi TASK-031 Hierarki 5 Peran: administrator = semua; owner = semua kecuali recovery & snapshot; admin = seperti owner dikurangi omset/finansial & manajemen pengguna; operator = seperti admin dikurangi tarif & unit armada; kurir = lacak unit | Dituangkan ke TASK-031, types/ryoko.ts, utils/userPermissions.ts, seedData.ts, UserManagementView.tsx, AndroidBottomNav.tsx, AndroidTopBar.tsx, App.tsx, Code.gs, SYNC_ARCHITECTURE.md |
 
 ---
 

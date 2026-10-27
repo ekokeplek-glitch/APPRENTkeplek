@@ -526,19 +526,21 @@ Definisi task. **Status task tidak ditulis di sini**; status ada di `SESSION_STA
 
 ---
 
-### TASK-031: Autentikasi Sesi Klien & Penyesuaian Role Multi-Perangkat
+### TASK-031: Autentikasi Sesi Klien & Penyesuaian Role Hierarki 5-Tingkat
 * **Fase:** FASE 14
-* **Deskripsi:** Mengimplementasikan lapisan autentikasi sesi klien untuk multi-perangkat: antarmuka login PIN/kredensial ke gerbang Apps Script, penonaktifan Quick Switcher bypass pada mode multi-perangkat (satu perangkat satu akun), penyimpanan token sesi aman di memori/sessionStorage dengan auto-clear saat logout, serta adaptasi hak akses UI secara ketat sesuai peran terverifikasi server.
+* **Deskripsi:** Mengimplementasikan pembaruan sistem peran pengguna (RBAC) dan autentikasi multi-perangkat sesuai hierarki baru: (1) Administrator = akses ke semua fitur tanpa kecuali termasuk recovery & snapshot; (2) Owner = semua fitur kecuali recovery & snapshot data; (3) Admin = seperti owner dikurangi laporan omset & finansial dan manajemen pengguna; (4) Operator = seperti admin dikurangi pengaturan tarif dan manajemen armada/unit; (5) Kurir = khusus pelacakan unit motor (lacak unit). Termasuk penyesuaian tipe data, matriks izin granular, antarmuka manajemen pengguna, pembatasan navigasi/tampilan UI, seed data akun contoh, dan sinkronisasi hak akses pada gerbang Apps Script.
 * **Dependensi:** `TASK-030`
-* **File:** `src/services/authService.ts`, `src/components/TopBar.tsx`, `src/App.tsx`, `src/types/ryoko.ts`
-* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `BLUEPRINT.md`
-* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`
+* **File:** `src/types/ryoko.ts`, `src/utils/userPermissions.ts`, `src/data/seedData.ts`, `src/components/UserManagementView.tsx`, `src/components/AndroidBottomNav.tsx`, `src/components/AndroidTopBar.tsx`, `src/App.tsx`, `backend/Code.gs`, `docs/SYNC_ARCHITECTURE.md`, `docs/GOOGLE_SHEETS_INTEGRATION.md`
+* **Docs Terkait:** `docs/SYNC_ARCHITECTURE.md`, `docs/GOOGLE_SHEETS_INTEGRATION.md`, `BLUEPRINT.md`
+* **Docs Impact:** `BLUEPRINT.md`, `SESSION_STATE.md`, `CHANGELOG.md`
 * **Acceptance Criteria:**
-  1. Login form meminta PIN/kredensial dan memvalidasi ke server gerbang untuk memperoleh session token.
-  2. Quick Switcher tidak dapat mem-bypass hak akses pada mode multi-perangkat.
-  3. Token sesi tersimpan aman dan terhapus saat logout.
-* **Test Case:** Multi-device client session login & role enforcement test
-* **Metode Verifikasi:** Jalankan `npm run lint` dan `python3 scripts/zlce/zlce-check.py .`.
+  1. Definisi peran `UserRole` mencakup 5 tingkat tepat: `administrator`, `owner`, `admin`, `operator`, `kurir`.
+  2. Matriks izin menegakkan hierarki: Administrator memiliki seluruh izin; Owner memiliki semua izin kecuali `canAccessRecovery`; Admin seperti Owner dikurangi `canViewRevenue` dan `canManageUsers`; Operator seperti Admin dikurangi `canManageFleet`; Kurir hanya memiliki izin `canManageTracking` (lacak unit).
+  3. Antarmuka navigasi (Bottom Nav, Top Bar, Settings, Modal Recovery) menyaring akses menu secara konsisten sesuai peran aktif pengguna; Kurir otomatis diarahkan ke Lacak Unit.
+  4. Panel Manajemen Pengguna menyediakan pemilihan peran 5-tingkat dengan badge warna, ikon, dan deskripsi hak akses yang akurat.
+  5. Gerbang Apps Script `backend/Code.gs` memfilter kolom keuangan untuk Admin, Operator, dan Kurir, serta membatasi aksi sensitif sesuai tingkatan peran.
+* **Test Case:** 5-tier role permissions matrix, UI navigation restrictions, and backend RBAC filtering test
+* **Metode Verifikasi:** Jalankan `npm run lint`, `npm run build`, dan `python3 scripts/zlce/zlce-check.py .`.
 
 ---
 

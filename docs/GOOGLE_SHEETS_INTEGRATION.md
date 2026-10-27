@@ -109,7 +109,7 @@ Daftar kredensial dan peran pengguna (Hanya dapat diakses Admin):
 2. username      : Username login (case-insensitive)
 3. pinHash       : Hash PIN SHA-256 + salt
 4. salt          : Garam acak per pengguna
-5. role          : admin | operator | admin_custom
+5. role          : administrator | owner | admin | operator | kurir
 6. nama          : Nama lengkap personil
 7. aktif         : TRUE | FALSE
 8. terakhirLogin : Timestamp login terakhir
@@ -120,7 +120,7 @@ Daftar penerima notifikasi bot Telegram pribadi (operator dan kurir):
 ```text
 1. id        : ID registrasi
 2. chatId    : Telegram Chat ID penerima (diperoleh saat /start)
-3. role      : operator | kurir | admin
+3. role      : administrator | owner | admin | operator | kurir
 4. nama      : Nama personil
 5. nomorWa   : Nomor WA aktif personil
 6. aktif     : TRUE | FALSE

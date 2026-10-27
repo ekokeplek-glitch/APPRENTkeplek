@@ -107,22 +107,44 @@ function setupDatabase() {
   });
 
   // Buat default akun Admin jika Users masih kosong
+  // Buat default akun jika Users masih kosong (Hierarki 5 Peran)
   const usersSheet = ss.getSheetByName(SHEETS.USERS);
   if (usersSheet && usersSheet.getLastRow() <= 1) {
-    const salt = generateSalt();
     const defaultPin = '1234'; // Default PIN awal, wajib diganti
-    const pinHash = hashPin(defaultPin, salt);
+    
+    // 1. Administrator: Akses ke semua fitur tanpa kecuali
+    const salt1 = generateSalt();
     usersSheet.appendRow([
-      'USR-001', 'admin', pinHash, salt, 'admin',
+      'USR-001', 'superadmin', hashPin(defaultPin, salt1), salt1, 'administrator',
       'Administrator Utama', 'TRUE', new Date().toISOString()
     ]);
     
-    // Default Operator
-    const opSalt = generateSalt();
-    const opPinHash = hashPin('1234', opSalt);
+    // 2. Owner: Semua fitur kecuali recovery & snapshot
+    const salt2 = generateSalt();
     usersSheet.appendRow([
-      'USR-002', 'operator', opPinHash, opSalt, 'operator',
+      'USR-002', 'owner', hashPin(defaultPin, salt2), salt2, 'owner',
+      'Owner Rental', 'TRUE', new Date().toISOString()
+    ]);
+
+    // 3. Admin: Seperti owner dikurangi omset/finansial & manajemen pengguna
+    const salt3 = generateSalt();
+    usersSheet.appendRow([
+      'USR-003', 'admin', hashPin(defaultPin, salt3), salt3, 'admin',
+      'Admin Operasional', 'TRUE', new Date().toISOString()
+    ]);
+
+    // 4. Operator: Seperti admin dikurangi tarif & unit armada
+    const salt4 = generateSalt();
+    usersSheet.appendRow([
+      'USR-004', 'operator', hashPin(defaultPin, salt4), salt4, 'operator',
       'Operator Pool Dinoyo', 'TRUE', new Date().toISOString()
+    ]);
+
+    // 5. Kurir: Khusus pelacakan unit motor (lacak unit)
+    const salt5 = generateSalt();
+    usersSheet.appendRow([
+      'USR-005', 'kurir', hashPin(defaultPin, salt5), salt5, 'kurir',
+      'Kurir Lapangan', 'TRUE', new Date().toISOString()
     ]);
   }
 
@@ -252,30 +274,12 @@ function doGet(e) {
  */
 function handleSyncPull(session) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const isAdmin = session.role === 'admin';
+  const role = session.role;
+  const canViewFinancials = role === 'administrator' || role === 'owner';
+  const canManageUsers = role === 'administrator' || role === 'owner';
+  const isCourier = role === 'kurir';
 
-  // 1. Ambil Bookings
-  const bookingSheet = ss.getSheetByName(SHEETS.BOOKING);
-  const bookings = [];
-  if (bookingSheet && bookingSheet.getLastRow() > 1) {
-    const data = bookingSheet.getDataRange().getValues();
-    const headers = data[0];
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const item = {};
-      headers.forEach((h, colIdx) => {
-        item[h] = row[colIdx];
-      });
-      // Sembunyikan kolom keuangan untuk non-admin
-      if (!isAdmin) {
-        item.totalEstimasiBiaya = null;
-        item.dendaKeterlambatan = null;
-      }
-      bookings.push(item);
-    }
-  }
-
-  // 2. Ambil Master Unit
+  // 1. Ambil Master Unit
   const unitSheet = ss.getSheetByName(SHEETS.UNIT);
   const units = [];
   if (unitSheet && unitSheet.getLastRow() > 1) {
@@ -291,7 +295,7 @@ function handleSyncPull(session) {
     }
   }
 
-  // 3. Ambil Tracking
+  // 2. Ambil Tracking
   const trackSheet = ss.getSheetByName(SHEETS.TRACKING);
   const tracking = [];
   if (trackSheet && trackSheet.getLastRow() > 1) {
@@ -307,6 +311,48 @@ function handleSyncPull(session) {
     }
   }
 
+  // Hitung versi server tertinggi
+  const serverVersion = getServerVersion();
+
+  // Khusus Kurir: Hanya diberikan data pelacakan unit motor
+  if (isCourier) {
+    return jsonResponse({
+      success: true,
+      serverVersion: serverVersion,
+      timestamp: new Date().toISOString(),
+      role: session.role,
+      data: {
+        bookings: [],
+        units: units,
+        tracking: tracking,
+        serviceRecords: [],
+        dailyOperationalLogs: [],
+        users: []
+      }
+    });
+  }
+
+  // 3. Ambil Bookings (Administrator, Owner, Admin, Operator)
+  const bookingSheet = ss.getSheetByName(SHEETS.BOOKING);
+  const bookings = [];
+  if (bookingSheet && bookingSheet.getLastRow() > 1) {
+    const data = bookingSheet.getDataRange().getValues();
+    const headers = data[0];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const item = {};
+      headers.forEach((h, colIdx) => {
+        item[h] = row[colIdx];
+      });
+      // Sembunyikan kolom keuangan untuk role selain Administrator & Owner (Admin & Operator dibatasi)
+      if (!canViewFinancials) {
+        item.totalEstimasiBiaya = null;
+        item.dendaKeterlambatan = null;
+      }
+      bookings.push(item);
+    }
+  }
+
   // 4. Ambil Servis
   const serviceSheet = ss.getSheetByName(SHEETS.SERVIS);
   const serviceLogs = [];
@@ -319,8 +365,7 @@ function handleSyncPull(session) {
       headers.forEach((h, colIdx) => {
         item[h] = row[colIdx];
       });
-      // Sembunyikan biaya servis untuk non-admin jika perlu
-      if (!isAdmin) {
+      if (!canViewFinancials) {
         item.biaya = null;
       }
       serviceLogs.push(item);
@@ -343,9 +388,9 @@ function handleSyncPull(session) {
     }
   }
 
-  // 6. Ambil Pengguna (Hanya Admin)
+  // 6. Ambil Pengguna (Hanya Administrator & Owner)
   let usersList = [];
-  if (isAdmin) {
+  if (canManageUsers) {
     const usersSheet = ss.getSheetByName(SHEETS.USERS);
     if (usersSheet && usersSheet.getLastRow() > 1) {
       const data = usersSheet.getDataRange().getValues();
@@ -677,11 +722,12 @@ function handleCreateBooking(bookingData, session, idempotencyKey) {
 }
 
 /**
- * Persetujuan booking oleh Admin (Wajib Online)
+ * Persetujuan booking oleh Administrator, Owner, atau Admin (Wajib Online)
  */
 function handleApproveBooking(data, session, idempotencyKey) {
-  if (session.role !== 'admin') {
-    return { success: false, error: 'FORBIDDEN', message: 'Hanya Admin yang dapat menyetujui booking' };
+  const allowedRoles = ['administrator', 'owner', 'admin'];
+  if (!allowedRoles.includes(session.role)) {
+    return { success: false, error: 'FORBIDDEN', message: 'Hanya Administrator, Owner, atau Admin yang dapat menyetujui booking' };
   }
 
   const noBooking = data.noBooking;

@@ -49,6 +49,7 @@ import { PWAInstallModal } from './components/PWAInstallModal';
 import { DigitalReceiptModal } from './components/DigitalReceiptModal';
 import { BookingDetailModal, QuickShareTab } from './components/BookingDetailModal';
 import { MonthlyReportView } from './components/MonthlyReportView';
+import { getUserEffectivePermissions } from './utils/userPermissions';
 
 export const App: React.FC = () => {
   // Database State in LocalStorage
@@ -999,20 +1000,34 @@ export const App: React.FC = () => {
     );
   }, [db.users, db.currentUserId]);
 
+  const permissions = useMemo(() => getUserEffectivePermissions(activeUser), [activeUser]);
+
   // Switch Active User (Testing and operational profile switching)
   const handleSwitchUser = useCallback(
     (userId: string) => {
       const target = db.users?.find(u => u.id === userId);
       if (!target) return;
+      const targetPerms = getUserEffectivePermissions(target);
+
       const newDb: RyokoDatabase = {
         ...db,
         currentUserId: userId,
       };
+
       if (target.role === 'kurir') {
-        setActiveTab('courier');
+        setActiveTab('tracking');
       } else if (activeTab === 'courier') {
         setActiveTab('dashboard');
+      } else if (activeTab === 'reports' && !targetPerms.canViewRevenue) {
+        setActiveTab('dashboard');
+      } else if (activeTab === 'users' && !targetPerms.canManageUsers) {
+        setActiveTab('dashboard');
+      } else if (activeTab === 'fleet' && !targetPerms.canManageFleet) {
+        setActiveTab('dashboard');
+      } else if (activeTab === 'settings' && !targetPerms.canManageSettings) {
+        setActiveTab('dashboard');
       }
+
       updateDatabaseState(newDb, 'Ganti Akun Pengguna', `Beralih profil ke ${target.nama} (${target.role})`);
     },
     [db, activeTab, updateDatabaseState]
@@ -1124,7 +1139,7 @@ export const App: React.FC = () => {
           onToggleDeviceView={() => setIsMobileDeviceView(prev => !prev)}
           onOpenNewBooking={() => setIsNewBookingModalOpen(true)}
           onOpenInstallGuide={() => setIsInstallGuideOpen(true)}
-          onOpenRecoveryWizard={() => setIsRecoveryModalOpen(true)}
+          onOpenRecoveryWizard={permissions.canAccessRecovery ? () => setIsRecoveryModalOpen(true) : undefined}
         />
 
         {/* Main Content Area */}
@@ -1153,7 +1168,7 @@ export const App: React.FC = () => {
                 setSelectedUpdateTracking(t);
               }}
               onSyncArmada={handleSyncArmada}
-              onOpenRecoveryWizard={() => setIsRecoveryModalOpen(true)}
+              onOpenRecoveryWizard={permissions.canAccessRecovery ? () => setIsRecoveryModalOpen(true) : undefined}
               onUpdateDatabase={updateDatabaseState}
             />
           )}
@@ -1237,7 +1252,7 @@ export const App: React.FC = () => {
               onImportSuccess={handleImportSuccess}
               onOpenInstallGuide={() => setIsInstallGuideOpen(true)}
               onNavigateToUsers={() => setActiveTab('users')}
-              onOpenRecoveryWizard={() => setIsRecoveryModalOpen(true)}
+              onOpenRecoveryWizard={permissions.canAccessRecovery ? () => setIsRecoveryModalOpen(true) : undefined}
             />
           )}
         </main>
@@ -1317,8 +1332,8 @@ export const App: React.FC = () => {
         <PWAInstallModal onClose={() => setIsInstallGuideOpen(false)} />
       )}
 
-      {/* 8. ZLCE Recovery Wizard Modal (Recovery Tab Studio) */}
-      {isRecoveryModalOpen && (
+      {/* 8. ZLCE Recovery Wizard Modal (Recovery Tab Studio - Khusus Administrator) */}
+      {isRecoveryModalOpen && permissions.canAccessRecovery && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/80">

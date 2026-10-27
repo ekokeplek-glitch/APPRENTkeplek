@@ -7,13 +7,19 @@ dan proyek ini menganut [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Ditambahkan
-- Pendaftaran revisi REV-10 (Level L) arsitektur sinkronisasi multi-perangkat: `TASK-REV-10` pada `TASKS.md`, ASM/Q baru (`ASM-04`..`ASM-23`, `Q-06`..`Q-26`) pada `SESSION_STATE.md`.
-- `docs/SYNC_ARCHITECTURE.md`: rancangan konseptual peran dan akses, diagram, alur online/offline/sinkron, konflik, keamanan, batasan LocalStorage, dan perbandingan opsi gratis. Hanya dokumentasi; belum ada perubahan kode.
-- `AI_WORKFLOW.md` dipulihkan dari `templates/AI_WORKFLOW.template.md` (berkas asli hilang dari arsip).
+- **TASK-030:** Implementasi skrip gerbang Google Apps Script `backend/Code.gs` dengan inisialisasi otomatis skema 9 tabel spreadsheet, otentikasi token sesi HMAC-SHA256, eksekusi tulis terserialisasi dengan `LockService`, pencegahan duplikasi idempoten pada tabel `Audit`, dan filter kolom per peran.
+- **TASK-031 (Revisi Hierarki 5 Peran RBAC):** Penataan ulang hak akses dan sistem peran 5 tingkat:
+  1. `administrator`: Akses ke seluruh fitur tanpa batas termasuk recovery dan snapshot data.
+  2. `owner`: Akses ke seluruh fitur operasional dan finansial, kecuali recovery & snapshot data.
+  3. `admin`: Seperti owner dikurangi laporan omset/finansial dan manajemen pengguna; memiliki kontrol tarif sewa & unit armada.
+  4. `operator`: Seperti admin dikurangi pengaturan tarif dan unit armada fisik (fokus sewa, servis, dan lacak).
+  5. `kurir`: Akses khusus pelacakan unit motor (lacak unit) untuk kemudahan koordinasi armada di lapangan.
+- Adaptasi antarmuka navigasi (`AndroidBottomNav`, `AndroidTopBar`, `UserManagementView`, `App.tsx`) dengan filter dinamis sesuai hak akses peran aktif pengguna.
 
 ### Diubah
-- `TASK-REV-10` selesai dan disetujui; `Q-26` diterapkan ("Servis" = `ryokou_diservis`).
-- `docs/GOOGLE_SHEETS_INTEGRATION.md`, `docs/TELEGRAM_BOT_INTEGRATION.md`, `SECURITY.md`, `BLUEPRINT.md`: catatan arsitektur target REV-10 dan penyelarasan NFR-01.
+- Pendaftaran revisi REV-10 dan REV-11 pada `TASKS.md` dan `SESSION_STATE.md`.
+- `backend/Code.gs`: Pemfilteran kolom omset/keuangan dan manajemen user disesuaikan untuk peran Administrator dan Owner, penyetujuan booking diizinkan untuk Administrator, Owner, dan Admin, sedangkan Kurir difilter khusus pelacakan unit.
+- `docs/SYNC_ARCHITECTURE.md` dan `docs/GOOGLE_SHEETS_INTEGRATION.md`: Penyelarasan matriks hak akses 5 peran.
 
 ## [3.5.0] - 2026-10-26
 

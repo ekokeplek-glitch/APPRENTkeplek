@@ -84,7 +84,7 @@ export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
                   {activeUser.nama}
                 </span>
                 <span className={`text-[9px] font-bold px-1 rounded border uppercase ${ROLE_LABELS[activeUser.role]?.badgeColor || ''}`}>
-                  {activeUser.role === 'admin_custom' ? 'Custom' : activeUser.role}
+                  {ROLE_LABELS[activeUser.role]?.label || activeUser.role}
                 </span>
               </div>
             </div>
@@ -118,12 +118,12 @@ export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
             )}
           </button>
 
-          {/* ⚡ ZLCE Studio Button - Always prominently visible */}
-          {onOpenRecoveryWizard && (
+          {/* ⚡ ZLCE Studio Button - Hanya untuk Administrator (Owner/Admin/Operator/Kurir dibatasi) */}
+          {permissions.canAccessRecovery && onOpenRecoveryWizard && (
             <button
               onClick={onOpenRecoveryWizard}
               className="flex items-center gap-1.5 text-xs font-bold bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-900 hover:from-cyan-900 hover:to-cyan-800 border border-cyan-500/80 hover:border-cyan-400 text-cyan-300 hover:text-white px-2.5 py-1.5 rounded-lg shadow-sm shadow-cyan-950/60 transition active:scale-95 shrink-0"
-              title="Buka Wizard ⚡ ZLCE Studio (Snapshot & Recovery)"
+              title="Buka Wizard ⚡ ZLCE Studio (Snapshot & Recovery - Khusus Administrator)"
             >
               <span className="text-amber-300 font-black text-xs animate-pulse">⚡</span>
               <span className="font-extrabold tracking-tight">ZLCE Studio</span>
@@ -172,7 +172,7 @@ export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
             </div>
 
             <p className="text-xs text-slate-400">
-              Pilih salah satu dari 4 profil akses untuk menguji tampilan peran masing-masing:
+              Pilih salah satu dari 5 profil hierarki akses untuk menguji tampilan peran masing-masing:
             </p>
 
             {/* List of available profiles */}
